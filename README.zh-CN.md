@@ -17,6 +17,7 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 - 置顶经常使用的记录。
 - 删除或清空后，可在七秒内通过“撤销”恢复。
 - 检查原文件是否已经移动或删除。
+- 通过可自定义的全局快捷键呼出 macOS 系统屏幕取色器；单击后复制 HEX 色值并保存为颜色记录，按 `Esc` 取消。
 - 从图片中提取配色，并复制 HEX 或 RGB 色值。
 - 使用本地 SQLite 数据库存储全部记录。
 - 从 GitHub Releases 检查并安装应用更新。
@@ -26,8 +27,8 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 
 | 平台 | 安装包 | 自动粘贴 | 说明 |
 | --- | --- | --- | --- |
-| macOS（Apple 芯片与 Intel） | DMG | 使用 macOS 辅助功能权限 | 保留原生剪贴板格式及有序的剪贴板项目。 |
-| Windows 10/11 x64 | NSIS 安装程序（`.exe`） | 使用标准 `Ctrl+V` 输入方式 | 保留文字、HTML、图片、文件及系统能够提供的组合格式。 |
+| macOS（Apple 芯片与 Intel） | DMG | 使用 macOS 辅助功能权限 | 支持原生剪贴板格式、有序剪贴板项目和系统屏幕取色器。 |
+| Windows 10/11 x64 | NSIS 安装程序（`.exe`） | 使用标准 `Ctrl+V` 输入方式 | 保留文字、HTML、图片、文件及系统能够提供的组合格式；原生屏幕取色功能暂未提供。 |
 
 前往 [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest) 下载最新版本。
 
@@ -39,10 +40,13 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 | --- | --- | --- |
 | 打开 Mote | `Option + 空格` | `Ctrl + Shift + 空格` |
 | 打开多条粘贴 | `Option + Shift + 空格` | `Ctrl + Alt + 空格` |
+| 提取屏幕颜色 | `Option + Shift + C` | 暂未提供 |
 | 在 Mote 中切换多选模式 | `Command + Shift + M` | `Ctrl + Shift + M` |
 | 搜索 | `Command + K` | `Ctrl + K` |
 | 粘贴选中的内容 | `Enter` | `Enter` |
 | 只复制选中内容、不直接粘贴 | `Command + Enter` | `Ctrl + Enter` |
+
+取到的颜色会立即复制，并像普通颜色记录一样保存，可继续搜索、置顶、复制 HEX 或 RGB。Mote 会把取色器结果和随后发生的剪贴板变化合并为一条历史记录，避免重复。
 
 ## 隐私与权限
 
@@ -110,4 +114,3 @@ worker/                      可交付到 Sites 的网页预览 Worker
 推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片和 Intel 版本的 DMG、Windows x64 NSIS 安装包、升级文件以及 `latest.json`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查。
 
 升级文件已经使用密钥签名。Windows 安装包本身还需要配置 Authenticode 证书，才能避免新设备首次安装时出现“未知发布者”提示。
-

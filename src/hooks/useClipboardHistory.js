@@ -118,6 +118,12 @@ export function useClipboardHistory() {
     await refresh(query);
   }, [query, refresh]);
 
+  const selectNewItem = useCallback(async (item) => {
+    setQuery("");
+    await refresh("");
+    if (item?.id != null) setSelectedId(item.id);
+  }, [refresh]);
+
   return {
     items,
     selected,
@@ -142,6 +148,7 @@ export function useClipboardHistory() {
     deleteItem,
     clearUnpinned,
     restoreItems,
+    selectNewItem,
     loading,
     error,
   };

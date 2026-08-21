@@ -17,6 +17,7 @@ Mote is a private clipboard history app for macOS and Windows. It quietly record
 - Pins frequently reused records.
 - Restores accidentally deleted or cleared records with a seven-second Undo action.
 - Detects files that have moved or been deleted.
+- Opens the macOS system screen color sampler from a configurable global shortcut; one click copies the HEX value and saves it as a color record, while `Escape` cancels.
 - Extracts a color palette from images and copies colors as HEX or RGB.
 - Stores all history locally in SQLite.
 - Checks GitHub Releases for signed application updates.
@@ -26,8 +27,8 @@ Mote is a private clipboard history app for macOS and Windows. It quietly record
 
 | Platform | Package | Automatic paste | Notes |
 | --- | --- | --- | --- |
-| macOS (Apple Silicon and Intel) | DMG | Uses macOS Accessibility permission | Native pasteboard representations and ordered pasteboard items are preserved. |
-| Windows 10/11 x64 | NSIS installer (`.exe`) | Uses the standard `Ctrl+V` input path | Text, HTML, images, files, and available combined formats are preserved. |
+| macOS (Apple Silicon and Intel) | DMG | Uses macOS Accessibility permission | Native pasteboard representations, ordered pasteboard items, and the system screen color sampler are supported. |
+| Windows 10/11 x64 | NSIS installer (`.exe`) | Uses the standard `Ctrl+V` input path | Text, HTML, images, files, and available combined formats are preserved. Native screen color picking is not yet available. |
 
 Download the newest build from [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest).
 
@@ -39,10 +40,13 @@ Every application shortcut can be changed from **Settings → Keyboard shortcuts
 | --- | --- | --- |
 | Open Mote | `Option + Space` | `Ctrl + Shift + Space` |
 | Open multiple paste | `Option + Shift + Space` | `Ctrl + Alt + Space` |
+| Pick a screen color | `Option + Shift + C` | Not yet available |
 | Toggle multiple selection while Mote is open | `Command + Shift + M` | `Ctrl + Shift + M` |
 | Search | `Command + K` | `Ctrl + K` |
 | Paste selected content | `Enter` | `Enter` |
 | Copy selected content without pasting | `Command + Enter` | `Ctrl + Enter` |
+
+Sampled colors are copied immediately and stored as normal color records, so they can be searched, pinned, copied as HEX or RGB, and restored later. Mote deduplicates the picker result and the clipboard event into one history record.
 
 ## Privacy and permissions
 
@@ -110,4 +114,3 @@ worker/                      Sites-compatible web preview worker
 Pushing a version tag such as `v0.3.0` runs the release workflow. It builds Apple Silicon and Intel DMGs, a Windows x64 NSIS installer, updater artifacts, and `latest.json`. Mote uses that GitHub Release metadata for in-app update checks.
 
 The updater artifacts are cryptographically signed. The Windows installer itself still needs an Authenticode certificate to avoid an “unknown publisher” warning on a fresh machine.
-

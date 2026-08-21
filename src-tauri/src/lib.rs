@@ -18,7 +18,7 @@ use tauri::{
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
-fn configured_shortcuts(settings: &AppSettings) -> Result<(Shortcut, Shortcut), String> {
+fn configured_shortcuts(settings: &AppSettings) -> Result<(Shortcut, Shortcut, Shortcut), String> {
     let open = settings
         .open_shortcut
         .parse::<Shortcut>()
@@ -27,15 +27,20 @@ fn configured_shortcuts(settings: &AppSettings) -> Result<(Shortcut, Shortcut), 
         .batch_shortcut
         .parse::<Shortcut>()
         .map_err(|error| format!("Invalid Multiple Paste shortcut: {error}"))?;
-    if open == batch {
-        return Err("Open Mote and Open Multiple Paste must use different shortcuts.".into());
+    let color = settings
+        .color_shortcut
+        .parse::<Shortcut>()
+        .map_err(|error| format!("Invalid Color Picker shortcut: {error}"))?;
+    if open == batch || open == color || batch == color {
+        return Err("Each Mote global shortcut must use a different key combination.".into());
     }
     if settings.toggle_batch_shortcut == settings.open_shortcut
         || settings.toggle_batch_shortcut == settings.batch_shortcut
+        || settings.toggle_batch_shortcut == settings.color_shortcut
     {
         return Err("Each Mote shortcut must use a different key combination.".into());
     }
-    Ok((open, batch))
+    Ok((open, batch, color))
 }
 
 pub(crate) fn replace_global_shortcuts(
@@ -46,6 +51,7 @@ pub(crate) fn replace_global_shortcuts(
     let next_shortcuts = configured_shortcuts(next)?;
     if previous.open_shortcut == next.open_shortcut
         && previous.batch_shortcut == next.batch_shortcut
+        && previous.color_shortcut == next.color_shortcut
     {
         return Ok(());
     }
@@ -53,10 +59,16 @@ pub(crate) fn replace_global_shortcuts(
     manager
         .unregister_all()
         .map_err(|error| error.to_string())?;
-    if let Err(error) = manager.register_multiple([next_shortcuts.0, next_shortcuts.1]) {
+    if let Err(error) =
+        manager.register_multiple([next_shortcuts.0, next_shortcuts.1, next_shortcuts.2])
+    {
         let _ = manager.unregister_all();
         if let Ok(previous_shortcuts) = configured_shortcuts(previous) {
-            let _ = manager.register_multiple([previous_shortcuts.0, previous_shortcuts.1]);
+            let _ = manager.register_multiple([
+                previous_shortcuts.0,
+                previous_shortcuts.1,
+                previous_shortcuts.2,
+            ]);
         }
         return Err(format!("Mote could not register that shortcut: {error}"));
     }
@@ -94,11 +106,14 @@ pub fn run() {
                     let Ok(settings) = app.state::<AppState>().database.settings() else {
                         return;
                     };
-                    let Ok((open_shortcut, batch_shortcut)) = configured_shortcuts(&settings)
+                    let Ok((open_shortcut, batch_shortcut, color_shortcut)) =
+                        configured_shortcuts(&settings)
                     else {
                         return;
                     };
-                    if shortcut == &open_shortcut || shortcut == &batch_shortcut {
+                    if shortcut == &color_shortcut {
+                        let _ = app.emit("mote://open-color-picker", ());
+                    } else if shortcut == &open_shortcut || shortcut == &batch_shortcut {
                         show_main_window(app);
                         if shortcut == &batch_shortcut {
                             let _ = app.emit("mote://open-batch", ());
@@ -124,8 +139,11 @@ pub fn run() {
                 .settings()
                 .unwrap_or_default();
             match configured_shortcuts(&settings) {
-                Ok((open, batch)) => {
-                    if let Err(error) = app.global_shortcut().register_multiple([open, batch]) {
+                Ok((open, batch, color)) => {
+                    if let Err(error) = app
+                        .global_shortcut()
+                        .register_multiple([open, batch, color])
+                    {
                         eprintln!("Mote could not register its shortcuts: {error}");
                     }
                 }
@@ -186,6 +204,7 @@ pub fn run() {
             commands::reveal_file,
             commands::check_file_paths,
             commands::copy_text_value,
+            commands::start_color_picker,
             commands::get_settings,
             commands::update_settings,
         ])

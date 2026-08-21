@@ -1,6 +1,6 @@
 use std::{path::Path, thread, time::Duration};
 
-use tauri::{image::Image, AppHandle, Manager, State};
+use tauri::{image::Image, AppHandle, Emitter, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
@@ -10,6 +10,13 @@ use crate::{
     platform,
     state::AppState,
 };
+
+#[cfg(target_os = "macos")]
+use crate::models::{ClipboardRepresentation, NewClipboardItem};
+#[cfg(target_os = "macos")]
+use block2::RcBlock;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{NSColor, NSColorSampler, NSColorSpace};
 
 #[tauri::command]
 pub fn list_clipboard_items(
@@ -172,6 +179,87 @@ pub fn copy_text_value(app: AppHandle, value: String) -> AppResult<()> {
     app.clipboard()
         .write_text(value)
         .map_err(|error| AppError::Clipboard(error.to_string()))
+}
+
+#[tauri::command]
+pub fn start_color_picker(app: AppHandle) -> AppResult<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let picker_app = app.clone();
+        app.run_on_main_thread(move || {
+            if let Some(window) = picker_app.get_webview_window("main") {
+                let _ = window.hide();
+            }
+            let callback_app = picker_app.clone();
+            let handler = RcBlock::new(move |color: *mut NSColor| {
+                let finish = || {
+                    if let Some(window) = callback_app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                };
+                let Some(color) = (unsafe { color.as_ref() }) else {
+                    finish();
+                    return;
+                };
+                let space = NSColorSpace::sRGBColorSpace();
+                let Some(color) = color.colorUsingColorSpace(&space) else {
+                    finish();
+                    return;
+                };
+                let channel = |value: f64| (value.clamp(0.0, 1.0) * 255.0).round() as u8;
+                let hex = format!(
+                    "#{:02X}{:02X}{:02X}",
+                    channel(color.redComponent()),
+                    channel(color.greenComponent()),
+                    channel(color.blueComponent())
+                );
+                let representations = vec![ClipboardRepresentation {
+                    item_index: 0,
+                    format: "text".into(),
+                    content: hex.clone(),
+                    byte_size: None,
+                    native_type: None,
+                    binary: false,
+                }];
+                let snapshot = NewClipboardItem {
+                    kind: "color".into(),
+                    title: hex.clone(),
+                    content: hex.clone(),
+                    detail: "Picked color".into(),
+                    byte_size: None,
+                    content_hash: crate::watcher::snapshot_hash(&representations),
+                    representations,
+                };
+                let state = callback_app.state::<AppState>();
+                let result = state.database.settings().and_then(|settings| {
+                    state
+                        .database
+                        .insert_snapshot(snapshot, settings.history_limit)
+                });
+                match result {
+                    Ok(item) => {
+                        let _ = callback_app.clipboard().write_text(hex);
+                        let _ = callback_app.emit("mote://clipboard-changed", item.clone());
+                        let _ = callback_app.emit("mote://color-picked", item);
+                    }
+                    Err(error) => {
+                        let _ = callback_app.emit("mote://color-picker-error", error.to_string());
+                    }
+                }
+                finish();
+            });
+            let sampler = NSColorSampler::new();
+            unsafe { sampler.showSamplerWithSelectionHandler(&handler) };
+        })
+        .map_err(|error| AppError::Clipboard(error.to_string()))?;
+        return Ok(());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    Err(AppError::Clipboard(
+        "Screen color picking is currently available on macOS.".into(),
+    ))
 }
 
 #[tauri::command]

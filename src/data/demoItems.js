@@ -26,6 +26,7 @@ export const defaultSettings = {
   excludeSensitiveApps: false,
   openShortcut: windows ? "Control+Shift+Space" : "Alt+Space",
   batchShortcut: windows ? "Control+Alt+Space" : "Alt+Shift+Space",
+  colorShortcut: windows ? "Control+Shift+KeyC" : "Alt+Shift+KeyC",
   toggleBatchShortcut: windows ? "Control+Shift+KeyM" : "Meta+Shift+KeyM",
   language: "auto",
 };
