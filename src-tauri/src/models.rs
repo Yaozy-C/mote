@@ -33,8 +33,16 @@ pub struct ClipboardItem {
     pub byte_size: Option<String>,
     pub created_at: i64,
     pub pinned: bool,
+    pub missing_files: bool,
     pub formats: Vec<String>,
     pub representations: Vec<ClipboardRepresentation>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionStatus {
+    pub clipboard_capture: bool,
+    pub accessibility: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

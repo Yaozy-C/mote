@@ -1,6 +1,6 @@
 [package]
 name = "mote"
-version = "0.1.0"
+version = "0.2.0"
 description = "Everything you copy, softly remembered."
 authors = ["Mote"]
 edition = "2021"

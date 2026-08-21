@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { ArrowClockwise, CheckCircle, Keyboard, Trash } from "@phosphor-icons/react";
-import { formatShortcut, shortcutFromEvent } from "../utils/shortcuts.js";
+import { ArrowClockwise, CheckCircle, Keyboard, Trash, WarningCircle } from "@phosphor-icons/react";
 
 function ToggleRow({ title, detail, checked, onChange }) {
   return (
@@ -18,28 +17,6 @@ function SelectRow({ title, detail, value, onChange, children }) {
       <span className="setting-copy"><strong>{title}</strong><small>{detail}</small></span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select>
     </label>
-  );
-}
-
-function ShortcutRow({ title, detail, value, onChange, pressKeys, locale }) {
-  const [recording, setRecording] = useState(false);
-  const capture = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.key === "Escape") {
-      setRecording(false);
-      return;
-    }
-    const shortcut = shortcutFromEvent(event);
-    if (!shortcut) return;
-    setRecording(false);
-    onChange(shortcut);
-  };
-  return (
-    <div className="setting-row shortcut-row">
-      <span className="setting-copy"><strong>{title}</strong><small>{detail}</small></span>
-      <button className={recording ? "recording" : ""} aria-label={title} onClick={() => setRecording(true)} onBlur={() => setRecording(false)} onKeyDown={recording ? capture : undefined}>{recording ? pressKeys : formatShortcut(value, locale)}</button>
-    </div>
   );
 }
 
@@ -64,7 +41,8 @@ function UpdateRow({ updater, t }) {
   );
 }
 
-export function SettingsPopover({ settings, onChange, onClear, updater, t, locale }) {
+export function SettingsPopover({ settings, onChange, onClear, onOpenShortcuts, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
+  const [section, setSection] = useState("general");
   const update = (patch) => onChange({ ...settings, ...patch });
   return (
     <aside className="settings-popover" role="dialog" aria-label={`Mote ${t("settings.title")}`}>
@@ -72,6 +50,20 @@ export function SettingsPopover({ settings, onChange, onClear, updater, t, local
         <img src="/assets/mote-logo.png" alt="" />
         <span><strong>{t("settings.title")}</strong><small>{t("settings.subtitle")}</small></span>
       </header>
+
+      <nav className="settings-tabs" aria-label={t("settings.categories")}>
+        {["general", "privacy", "appearance", "update"].map((value) => <button className={section === value ? "active" : ""} key={value} onClick={() => setSection(value)}>{t(`settings.category.${value}`)}</button>)}
+      </nav>
+
+      {section === "general" && <>
+      <section className="settings-section">
+        <p>{t("settings.permissions")}</p>
+        <div className="settings-card permission-card">
+          <PermissionRow title={t("permission.capture")} detail={permissionStatus.clipboardCapture ? t("permission.ready") : t("permission.captureOff")} ready={permissionStatus.clipboardCapture} />
+          <PermissionRow title={t("permission.autoPaste")} detail={permissionStatus.accessibility ? t("permission.ready") : t("permission.accessibilityNeeded")} ready={permissionStatus.accessibility} action={!permissionStatus.accessibility && <button onClick={onOpenAccessibility}>{t("permission.fix")}</button>} />
+          <button className="permission-refresh" onClick={onRefreshPermissions}><ArrowClockwise size={13} />{t("permission.checkAgain")}</button>
+        </div>
+      </section>
 
       <section className="settings-section">
         <p>{t("settings.general")}</p>
@@ -85,15 +77,10 @@ export function SettingsPopover({ settings, onChange, onClear, updater, t, local
         </div>
       </section>
 
-      <section className="settings-section">
-        <p><Keyboard size={11} /> {t("settings.shortcuts")}</p>
-        <div className="settings-card">
-          <ShortcutRow title={t("settings.openMote")} detail={t("settings.openMoteDetail")} value={settings.openShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ openShortcut: value })} />
-          <ShortcutRow title={t("settings.openMultiple")} detail={t("settings.openMultipleDetail")} value={settings.batchShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ batchShortcut: value })} />
-          <ShortcutRow title={t("settings.toggleMultiple")} detail={t("settings.toggleMultipleDetail")} value={settings.toggleBatchShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ toggleBatchShortcut: value })} />
-        </div>
-      </section>
+      <button className="open-shortcuts" onClick={onOpenShortcuts}><Keyboard size={17} /><span><strong>{t("settings.shortcuts")}</strong><small>{t("shortcut.settingsDetail")}</small></span><span>›</span></button>
+      </>}
 
+      {section === "privacy" && <>
       <section className="settings-section">
         <p>{t("settings.privacy")}</p>
         <div className="settings-card">
@@ -106,20 +93,26 @@ export function SettingsPopover({ settings, onChange, onClear, updater, t, local
           </SelectRow>
         </div>
       </section>
+      <button className="clear-history" onClick={onClear}><Trash size={16} /> {t("settings.clear")}</button>
+      </>}
 
+      {section === "appearance" &&
       <section className="settings-section">
         <p>{t("settings.accessibility")}</p>
         <div className="settings-card">
           <ToggleRow title={t("settings.reduceMotion")} detail={t("settings.reduceMotionDetail")} checked={settings.reduceMotion} onChange={(value) => update({ reduceMotion: value })} />
         </div>
-      </section>
+      </section>}
 
+      {section === "update" &&
       <section className="settings-section">
         <p>{t("update.section")}</p>
         <div className="settings-card"><UpdateRow updater={updater} t={t} /></div>
-      </section>
-
-      <button className="clear-history" onClick={onClear}><Trash size={16} /> {t("settings.clear")}</button>
+      </section>}
     </aside>
   );
+}
+
+function PermissionRow({ title, detail, ready, action }) {
+  return <div className="setting-row permission-row"><span className="setting-copy"><strong>{title}</strong><small>{detail}</small></span><span className={`permission-state ${ready ? "ready" : "needed"}`}>{ready ? <CheckCircle size={16} weight="fill" /> : <WarningCircle size={16} weight="fill" />}{action}</span></div>;
 }

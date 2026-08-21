@@ -3,6 +3,43 @@ use std::{collections::BTreeMap, path::Path, process::Command};
 use crate::models::ClipboardRepresentation;
 
 #[cfg(target_os = "macos")]
+#[link(name = "ApplicationServices", kind = "framework")]
+extern "C" {
+    fn AXIsProcessTrusted() -> bool;
+}
+
+pub fn accessibility_trusted() -> bool {
+    #[cfg(target_os = "macos")]
+    unsafe {
+        return AXIsProcessTrusted();
+    }
+    #[cfg(not(target_os = "macos"))]
+    false
+}
+
+pub fn open_external(value: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    return Command::new("open")
+        .arg(value)
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| error.to_string());
+    #[cfg(not(target_os = "macos"))]
+    Err("Opening links is only available in the macOS app.".into())
+}
+
+pub fn reveal_file(path: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    return Command::new("open")
+        .args(["-R", path])
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| error.to_string());
+    #[cfg(not(target_os = "macos"))]
+    Err("Revealing files is only available in the macOS app.".into())
+}
+
+#[cfg(target_os = "macos")]
 pub fn pasteboard_change_count() -> Option<i64> {
     use objc2_app_kit::NSPasteboard;
     Some(NSPasteboard::generalPasteboard().changeCount() as i64)

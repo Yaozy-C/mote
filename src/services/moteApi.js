@@ -4,6 +4,7 @@ import { defaultSettings, demoItems } from "../data/demoItems.js";
 
 const ITEMS_KEY = "mote.demo.items.v2";
 const SETTINGS_KEY = "mote.demo.settings.v1";
+const TRASH_KEY = "mote.demo.trash.v1";
 
 export const isDesktopRuntime = () => Boolean(window.__TAURI_INTERNALS__);
 export const imageSource = (value) => isDesktopRuntime() && value.startsWith("/") && !value.startsWith("/assets/") ? convertFileSrc(value) : value;
@@ -80,16 +81,30 @@ export const moteApi = {
     if (isDesktopRuntime()) {
       return invoke("delete_clipboard_item", { id });
     }
-    const items = loadDemoItems().filter((item) => item.id !== id);
+    const current = loadDemoItems();
+    const removed = current.filter((item) => item.id === id);
+    localStorage.setItem(TRASH_KEY, JSON.stringify(removed));
+    const items = current.filter((item) => item.id !== id);
     saveDemoItems(items);
-    return true;
+    return removed.map((item) => item.id);
   },
 
   async clearUnpinned() {
     if (isDesktopRuntime()) return invoke("clear_unpinned_items");
-    const remaining = loadDemoItems().filter((item) => item.pinned);
+    const current = loadDemoItems();
+    const removed = current.filter((item) => !item.pinned);
+    localStorage.setItem(TRASH_KEY, JSON.stringify(removed));
+    const remaining = current.filter((item) => item.pinned);
     saveDemoItems(remaining);
-    return remaining.length;
+    return removed.map((item) => item.id);
+  },
+
+  async restoreItems(ids) {
+    if (isDesktopRuntime()) return invoke("restore_clipboard_items", { ids });
+    const trashed = JSON.parse(localStorage.getItem(TRASH_KEY) || "[]");
+    const restored = trashed.filter((item) => ids.includes(item.id));
+    saveDemoItems([...loadDemoItems(), ...restored].filter((item, index, values) => values.findIndex((candidate) => candidate.id === item.id) === index));
+    return restored.length;
   },
 
   async hideWindow() {
@@ -98,6 +113,30 @@ export const moteApi = {
 
   async openAccessibilitySettings() {
     if (isDesktopRuntime()) return invoke("open_accessibility_settings");
+  },
+
+  async getPermissionStatus() {
+    if (isDesktopRuntime()) return invoke("get_permission_status");
+    return { clipboardCapture: loadDemoSettings().captureEnabled, accessibility: true };
+  },
+
+  async openExternal(value) {
+    if (isDesktopRuntime()) return invoke("open_external", { value });
+    window.open(value, "_blank", "noopener,noreferrer");
+  },
+
+  async revealFile(path) {
+    if (isDesktopRuntime()) return invoke("reveal_file", { path });
+  },
+
+  async checkFilePaths(paths) {
+    if (isDesktopRuntime()) return invoke("check_file_paths", { paths });
+    return paths.map(() => true);
+  },
+
+  async copyText(value) {
+    if (isDesktopRuntime()) return invoke("copy_text_value", { value });
+    return navigator.clipboard.writeText(value);
   },
 
   async getSettings() {

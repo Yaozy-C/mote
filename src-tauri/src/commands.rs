@@ -6,7 +6,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::{
     error::{AppError, AppResult},
-    models::{AppSettings, ClipboardItem},
+    models::{AppSettings, ClipboardItem, PermissionStatus},
     platform,
     state::AppState,
 };
@@ -135,27 +135,67 @@ pub fn open_accessibility_settings() -> AppResult<()> {
 }
 
 #[tauri::command]
+pub fn get_permission_status(state: State<'_, AppState>) -> AppResult<PermissionStatus> {
+    Ok(PermissionStatus {
+        clipboard_capture: state.database.settings()?.capture_enabled,
+        accessibility: platform::accessibility_trusted(),
+    })
+}
+
+#[tauri::command]
+pub fn open_external(value: String) -> AppResult<()> {
+    if !(value.starts_with("https://") || value.starts_with("http://")) {
+        return Err(AppError::Clipboard(
+            "Mote can only open web links safely.".into(),
+        ));
+    }
+    platform::open_external(&value).map_err(AppError::Clipboard)
+}
+
+#[tauri::command]
+pub fn reveal_file(path: String) -> AppResult<()> {
+    if !Path::new(&path).exists() {
+        return Err(AppError::Clipboard(
+            "That file is no longer available at its original location.".into(),
+        ));
+    }
+    platform::reveal_file(&path).map_err(AppError::Clipboard)
+}
+
+#[tauri::command]
+pub fn check_file_paths(paths: Vec<String>) -> Vec<bool> {
+    paths.iter().map(|path| Path::new(path).exists()).collect()
+}
+
+#[tauri::command]
+pub fn copy_text_value(app: AppHandle, value: String) -> AppResult<()> {
+    app.clipboard()
+        .write_text(value)
+        .map_err(|error| AppError::Clipboard(error.to_string()))
+}
+
+#[tauri::command]
 pub fn toggle_clipboard_pin(state: State<'_, AppState>, id: i64) -> AppResult<ClipboardItem> {
     state.database.toggle_pin(id)
 }
 
 #[tauri::command]
-pub fn delete_clipboard_item(state: State<'_, AppState>, id: i64) -> AppResult<bool> {
-    let item = state.database.get_item(id)?;
-    let deleted = state.database.delete_item(id)?;
-    if deleted {
-        for representation in item.representations {
-            if representation.binary && Path::new(&representation.content).is_absolute() {
-                let _ = std::fs::remove_file(representation.content);
-            }
-        }
-    }
-    Ok(deleted)
+pub fn delete_clipboard_item(state: State<'_, AppState>, id: i64) -> AppResult<Vec<i64>> {
+    Ok(if state.database.delete_item(id)? {
+        vec![id]
+    } else {
+        Vec::new()
+    })
 }
 
 #[tauri::command]
-pub fn clear_unpinned_items(state: State<'_, AppState>) -> AppResult<u64> {
+pub fn clear_unpinned_items(state: State<'_, AppState>) -> AppResult<Vec<i64>> {
     state.database.clear_unpinned()
+}
+
+#[tauri::command]
+pub fn restore_clipboard_items(state: State<'_, AppState>, ids: Vec<i64>) -> AppResult<u64> {
+    state.database.restore_items(&ids)
 }
 
 #[tauri::command]

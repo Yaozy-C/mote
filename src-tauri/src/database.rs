@@ -41,6 +41,7 @@ impl Database {
                 byte_size   TEXT,
                 created_at  INTEGER NOT NULL,
                 pinned      INTEGER NOT NULL DEFAULT 0,
+                deleted_at  INTEGER,
                 content_hash TEXT NOT NULL UNIQUE
             );
 
@@ -88,6 +89,10 @@ impl Database {
             "ALTER TABLE clipboard_representations ADD COLUMN binary INTEGER NOT NULL DEFAULT 0",
             [],
         );
+        let _ = connection.execute(
+            "ALTER TABLE clipboard_items ADD COLUMN deleted_at INTEGER",
+            [],
+        );
         Ok(())
     }
 
@@ -109,7 +114,8 @@ impl Database {
                 content = excluded.content,
                 detail = excluded.detail,
                 byte_size = excluded.byte_size,
-                created_at = excluded.created_at
+                created_at = excluded.created_at,
+                deleted_at = NULL
             "#,
             params![
                 snapshot.kind,
@@ -156,7 +162,7 @@ impl Database {
 
         if normalized.is_empty() {
             let mut statement = connection.prepare(
-                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items ORDER BY pinned DESC, created_at DESC LIMIT ?1",
+                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC LIMIT ?1",
             )?;
             let rows = statement.query_map(params![limit], map_item)?;
             for row in rows {
@@ -165,7 +171,7 @@ impl Database {
         } else {
             let pattern = format!("%{normalized}%");
             let mut statement = connection.prepare(
-                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE title LIKE ?1 OR content LIKE ?1 OR detail LIKE ?1 OR EXISTS (SELECT 1 FROM clipboard_representations representation WHERE representation.item_id = clipboard_items.id AND representation.content LIKE ?1) ORDER BY pinned DESC, created_at DESC LIMIT ?2",
+                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE deleted_at IS NULL AND (title LIKE ?1 OR content LIKE ?1 OR detail LIKE ?1 OR EXISTS (SELECT 1 FROM clipboard_representations representation WHERE representation.item_id = clipboard_items.id AND representation.content LIKE ?1)) ORDER BY pinned DESC, created_at DESC LIMIT ?2",
             )?;
             let rows = statement.query_map(params![pattern, limit], map_item)?;
             for row in rows {
@@ -180,7 +186,7 @@ impl Database {
         let connection = self.lock()?;
         let mut item = connection
             .query_row(
-                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE id = ?1",
+                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE id = ?1 AND deleted_at IS NULL",
                 params![id],
                 map_item,
             )
@@ -193,7 +199,7 @@ impl Database {
     pub fn toggle_pin(&self, id: i64) -> AppResult<ClipboardItem> {
         let connection = self.lock()?;
         let changed = connection.execute(
-            "UPDATE clipboard_items SET pinned = CASE pinned WHEN 0 THEN 1 ELSE 0 END WHERE id = ?1",
+            "UPDATE clipboard_items SET pinned = CASE pinned WHEN 0 THEN 1 ELSE 0 END WHERE id = ?1 AND deleted_at IS NULL",
             params![id],
         )?;
         if changed == 0 {
@@ -210,31 +216,69 @@ impl Database {
 
     pub fn delete_item(&self, id: i64) -> AppResult<bool> {
         let connection = self.lock()?;
-        Ok(connection.execute("DELETE FROM clipboard_items WHERE id = ?1", params![id])? > 0)
+        Ok(connection.execute(
+            "UPDATE clipboard_items SET deleted_at = ?2 WHERE id = ?1 AND deleted_at IS NULL",
+            params![id, Utc::now().timestamp_millis()],
+        )? > 0)
     }
 
-    pub fn clear_unpinned(&self) -> AppResult<u64> {
-        let connection = self.lock()?;
-        let files = image_paths_for(&connection, "item.pinned = 0", [])?;
-        let changed = connection.execute("DELETE FROM clipboard_items WHERE pinned = 0", [])?;
-        drop(connection);
-        remove_cached_files(files);
-        Ok(changed as u64)
+    pub fn clear_unpinned(&self) -> AppResult<Vec<i64>> {
+        let mut connection = self.lock()?;
+        let transaction = connection.transaction()?;
+        let ids = {
+            let mut statement = transaction.prepare(
+                "SELECT id FROM clipboard_items WHERE pinned = 0 AND deleted_at IS NULL",
+            )?;
+            let rows = statement
+                .query_map([], |row| row.get::<_, i64>(0))?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            rows
+        };
+        transaction.execute(
+            "UPDATE clipboard_items SET deleted_at = ?1 WHERE pinned = 0 AND deleted_at IS NULL",
+            params![Utc::now().timestamp_millis()],
+        )?;
+        transaction.commit()?;
+        Ok(ids)
+    }
+
+    pub fn restore_items(&self, ids: &[i64]) -> AppResult<u64> {
+        let mut connection = self.lock()?;
+        let transaction = connection.transaction()?;
+        let mut restored = 0;
+        for id in ids {
+            restored += transaction.execute(
+                "UPDATE clipboard_items SET deleted_at = NULL WHERE id = ?1 AND deleted_at IS NOT NULL",
+                params![id],
+            )? as u64;
+        }
+        transaction.commit()?;
+        Ok(restored)
     }
 
     pub fn cleanup(&self, settings: &AppSettings) -> AppResult<()> {
         let connection = self.lock()?;
         let mut files = prune_count_locked(&connection, settings.history_limit)?;
+        let trash_cutoff = Utc::now().timestamp_millis() - 24 * 60 * 60 * 1_000;
+        files.extend(image_paths_for(
+            &connection,
+            "item.deleted_at IS NOT NULL AND item.deleted_at < ?1",
+            params![trash_cutoff],
+        )?);
+        connection.execute(
+            "DELETE FROM clipboard_items WHERE deleted_at IS NOT NULL AND deleted_at < ?1",
+            params![trash_cutoff],
+        )?;
         if settings.retention_days > 0 {
             let cutoff = Utc::now().timestamp_millis()
                 - i64::from(settings.retention_days) * 24 * 60 * 60 * 1_000;
             files.extend(image_paths_for(
                 &connection,
-                "item.pinned = 0 AND item.created_at < ?1",
+                "item.pinned = 0 AND item.deleted_at IS NULL AND item.created_at < ?1",
                 params![cutoff],
             )?);
             connection.execute(
-                "DELETE FROM clipboard_items WHERE pinned = 0 AND created_at < ?1",
+                "DELETE FROM clipboard_items WHERE pinned = 0 AND deleted_at IS NULL AND created_at < ?1",
                 params![cutoff],
             )?;
         }
@@ -286,6 +330,7 @@ fn map_item(row: &Row<'_>) -> rusqlite::Result<ClipboardItem> {
         byte_size: row.get(5)?,
         created_at: row.get(6)?,
         pinned: row.get::<_, i64>(7)? != 0,
+        missing_files: false,
         formats: Vec::new(),
         representations: Vec::new(),
     })
@@ -314,6 +359,10 @@ fn attach_representations(connection: &Connection, items: &mut [ClipboardItem]) 
             .collect();
         item.formats.sort();
         item.formats.dedup();
+        item.missing_files = item
+            .representations
+            .iter()
+            .any(representation_has_missing_file);
     }
     Ok(())
 }
@@ -321,19 +370,42 @@ fn attach_representations(connection: &Connection, items: &mut [ClipboardItem]) 
 fn prune_count_locked(connection: &Connection, history_limit: u32) -> AppResult<Vec<String>> {
     let files = image_paths_for(
         connection,
-        "item.pinned = 0 AND item.id NOT IN (SELECT id FROM clipboard_items ORDER BY pinned DESC, created_at DESC LIMIT ?1)",
+        "item.pinned = 0 AND item.deleted_at IS NULL AND item.id NOT IN (SELECT id FROM clipboard_items WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC LIMIT ?1)",
         params![history_limit.max(10)],
     )?;
     connection.execute(
         r#"
         DELETE FROM clipboard_items
-        WHERE pinned = 0 AND id NOT IN (
-            SELECT id FROM clipboard_items ORDER BY pinned DESC, created_at DESC LIMIT ?1
+        WHERE pinned = 0 AND deleted_at IS NULL AND id NOT IN (
+            SELECT id FROM clipboard_items WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC LIMIT ?1
         )
         "#,
         params![history_limit.max(10)],
     )?;
     Ok(files)
+}
+
+fn representation_has_missing_file(representation: &ClipboardRepresentation) -> bool {
+    if representation.format != "files" {
+        return false;
+    }
+    file_paths(&representation.content)
+        .iter()
+        .any(|path| !Path::new(path).exists())
+}
+
+fn file_paths(content: &str) -> Vec<String> {
+    if let Ok(paths) = serde_json::from_str::<Vec<String>>(content) {
+        return paths.into_iter().map(normalize_file_path).collect();
+    }
+    vec![normalize_file_path(content.to_string())]
+}
+
+fn normalize_file_path(value: String) -> String {
+    value
+        .strip_prefix("file://")
+        .unwrap_or(&value)
+        .replace("%20", " ")
 }
 
 fn image_paths_for<P>(connection: &Connection, condition: &str, params: P) -> AppResult<Vec<String>>
@@ -440,5 +512,34 @@ mod tests {
             Some("public.png")
         );
         assert!(item.representations[1].binary);
+    }
+
+    #[test]
+    fn deleted_items_can_be_restored() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let item = database
+            .insert_snapshot(text_snapshot("undo me"), 100)
+            .unwrap();
+        assert!(database.delete_item(item.id).unwrap());
+        assert!(database.list_items(None, 100).unwrap().is_empty());
+        assert_eq!(database.restore_items(&[item.id]).unwrap(), 1);
+        assert_eq!(database.list_items(None, 100).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn marks_missing_file_representations() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let mut snapshot = text_snapshot("missing file");
+        snapshot.kind = "files".into();
+        snapshot.representations = vec![ClipboardRepresentation {
+            item_index: 0,
+            format: "files".into(),
+            content: "/definitely-not-a-real-mote-file.pdf".into(),
+            byte_size: None,
+            native_type: Some("public.file-url".into()),
+            binary: false,
+        }];
+        let item = database.insert_snapshot(snapshot, 100).unwrap();
+        assert!(item.missing_files);
     }
 }

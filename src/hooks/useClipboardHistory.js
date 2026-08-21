@@ -96,9 +96,10 @@ export function useClipboardHistory() {
   }, [query, refresh, selected]);
 
   const deleteItem = useCallback(async () => {
-    if (!selected) return;
-    await moteApi.deleteItem(selected.id);
+    if (!selected) return [];
+    const ids = await moteApi.deleteItem(selected.id);
     await refresh(query);
+    return ids;
   }, [query, refresh, selected]);
 
   const saveSettings = useCallback(async (nextSettings) => {
@@ -107,7 +108,13 @@ export function useClipboardHistory() {
   }, []);
 
   const clearUnpinned = useCallback(async () => {
-    await moteApi.clearUnpinned();
+    const ids = await moteApi.clearUnpinned();
+    await refresh(query);
+    return ids;
+  }, [query, refresh]);
+
+  const restoreItems = useCallback(async (ids) => {
+    await moteApi.restoreItems(ids);
     await refresh(query);
   }, [query, refresh]);
 
@@ -134,6 +141,7 @@ export function useClipboardHistory() {
     togglePin,
     deleteItem,
     clearUnpinned,
+    restoreItems,
     loading,
     error,
   };

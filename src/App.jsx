@@ -9,7 +9,9 @@ import { HelpDialog } from "./components/HelpDialog.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
 import { ParticleField } from "./components/ParticleField.jsx";
 import { SettingsPopover } from "./components/SettingsPopover.jsx";
+import { ShortcutDialog } from "./components/ShortcutDialog.jsx";
 import { UpdateDialog } from "./components/UpdateDialog.jsx";
+import { UndoToast } from "./components/UndoToast.jsx";
 import { useAppUpdater } from "./hooks/useAppUpdater.js";
 import { useClipboardHistory } from "./hooks/useClipboardHistory.js";
 import { isDesktopRuntime, moteApi } from "./services/moteApi.js";
@@ -23,10 +25,14 @@ export function App() {
   const [actionDone, setActionDone] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [shortcutOpen, setShortcutOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [permissionStatus, setPermissionStatus] = useState({ clipboardCapture: history.settings.captureEnabled, accessibility: false });
+  const [undoState, setUndoState] = useState(null);
   const searchRef = useRef(null);
+  const undoTimer = useRef(null);
   const didOfferHelp = useRef(false);
 
   const runAction = async (action) => {
@@ -69,10 +75,11 @@ export function App() {
         return;
       }
       if (event.key === "Escape") {
-        if (actionError || settingsOpen || helpOpen || clearConfirmOpen) {
+        if (actionError || settingsOpen || helpOpen || shortcutOpen || clearConfirmOpen) {
           setActionError("");
           setSettingsOpen(false);
           setHelpOpen(false);
+          setShortcutOpen(false);
           if (!clearingHistory) setClearConfirmOpen(false);
         } else if (history.batchMode) {
           history.cancelBatchSelection();
@@ -81,7 +88,7 @@ export function App() {
         }
         searchRef.current?.blur();
       }
-      if (actionError || helpOpen || settingsOpen || clearConfirmOpen) return;
+      if (actionError || helpOpen || settingsOpen || shortcutOpen || clearConfirmOpen) return;
       if (history.batchMode) {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") {
           event.preventDefault();
@@ -114,7 +121,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [actionError, clearConfirmOpen, clearingHistory, helpOpen, settingsOpen, history]);
+  }, [actionError, clearConfirmOpen, clearingHistory, helpOpen, shortcutOpen, settingsOpen, history]);
 
   useEffect(() => {
     let dispose = () => {};
@@ -160,7 +167,8 @@ export function App() {
     setClearingHistory(true);
     try {
       setActionError("");
-      await history.clearUnpinned();
+      const ids = await history.clearUnpinned();
+      if (ids?.length) offerUndo(ids);
       setClearConfirmOpen(false);
     } catch (cause) {
       setClearConfirmOpen(false);
@@ -169,6 +177,35 @@ export function App() {
       setClearingHistory(false);
     }
   };
+
+  const refreshPermissions = async () => {
+    try { setPermissionStatus(await moteApi.getPermissionStatus()); } catch (cause) { setActionError(String(cause)); }
+  };
+
+  const offerUndo = (ids) => {
+    window.clearTimeout(undoTimer.current);
+    setUndoState({ ids, count: ids.length });
+    undoTimer.current = window.setTimeout(() => setUndoState(null), 7000);
+  };
+
+  const handleDelete = () => runAction(async () => {
+    const ids = await history.deleteItem();
+    if (ids?.length) offerUndo(ids);
+  });
+
+  const handleUndo = () => runAction(async () => {
+    if (!undoState) return;
+    await history.restoreItems(undoState.ids);
+    window.clearTimeout(undoTimer.current);
+    setUndoState(null);
+  });
+
+  useEffect(() => {
+    refreshPermissions();
+    const refresh = () => refreshPermissions();
+    window.addEventListener("focus", refresh);
+    return () => { window.removeEventListener("focus", refresh); window.clearTimeout(undoTimer.current); };
+  }, [history.settings.captureEnabled]);
 
   return (
     <main className={`desktop-stage ${isDesktopRuntime() ? "native-runtime" : ""} ${history.settings.reduceMotion ? "reduce-motion" : ""}`}>
@@ -194,7 +231,7 @@ export function App() {
           <section className="preview-panel" aria-live="polite">
             <div className="preview-scroll">
               <div className="preview-transition" key={history.batchMode ? `batch-${history.batchSelectedIds.join("-")}` : history.selectedId ?? "empty"}>
-                {history.batchMode ? <BatchPreview items={history.batchSelectedItems} t={t} /> : history.selected ? <DetailPreview item={history.selected} t={t} locale={locale} /> : <div className="empty-state"><strong>{t("empty.clipboard")}</strong></div>}
+                {history.batchMode ? <BatchPreview items={history.batchSelectedItems} t={t} /> : history.selected ? <DetailPreview item={history.selected} t={t} locale={locale} onError={setActionError} /> : <div className="empty-state"><strong>{t("empty.clipboard")}</strong></div>}
               </div>
             </div>
             {history.batchMode ? <footer className="preview-actions batch-actions">
@@ -204,19 +241,21 @@ export function App() {
             </footer> : history.selected && <footer className="preview-actions">
               <button className={`primary-action ${actionDone ? "copied" : ""}`} onClick={history.settings.directPaste ? handlePaste : handleCopy}>{actionDone ? <IconCheck size={18} stroke={2} aria-hidden="true" /> : history.settings.directPaste ? <IconClipboard size={18} stroke={1.75} aria-hidden="true" /> : <IconCopy size={18} stroke={1.75} aria-hidden="true" />} {actionDone ? actionDone.type === "copied" ? t("action.copied") : actionDone.count > 1 ? t("action.pastedCount", { count: actionDone.count }) : t("action.pasted") : history.settings.directPaste ? t("action.paste") : t("action.copy")}<kbd>{history.settings.directPaste ? "↵" : "⌘ ↵"}</kbd></button>
               <button onClick={() => runAction(history.togglePin)} className={history.selected.pinned ? "active" : ""}><IconPinned size={18} stroke={1.75} aria-hidden="true" />{history.selected.pinned ? t("action.pinned") : t("action.pin")}</button>
-              <button className="delete-action" onClick={() => runAction(history.deleteItem)}><IconTrash size={18} stroke={1.75} aria-hidden="true" /> {t("action.delete")}</button>
+              <button className="delete-action" onClick={handleDelete}><IconTrash size={18} stroke={1.75} aria-hidden="true" /> {t("action.delete")}</button>
             </footer>}
           </section>
         </div>
 
-        {settingsOpen && <SettingsPopover settings={history.settings} updater={updater} t={t} locale={locale} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
+        {settingsOpen && <SettingsPopover settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} onOpenShortcuts={() => { setSettingsOpen(false); setShortcutOpen(true); }} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
           setSettingsOpen(false);
           setClearConfirmOpen(true);
         }} />}
-        {helpOpen && <HelpDialog onClose={closeHelp} settings={history.settings} t={t} locale={locale} />}
+        {helpOpen && <HelpDialog onClose={closeHelp} settings={history.settings} permissionStatus={permissionStatus} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} t={t} locale={locale} />}
+        {shortcutOpen && <ShortcutDialog settings={history.settings} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClose={() => setShortcutOpen(false)} t={t} locale={locale} />}
         {clearConfirmOpen && <ClearHistoryDialog busy={clearingHistory} onCancel={() => setClearConfirmOpen(false)} onConfirm={handleClearHistory} t={t} />}
         {(updater.status === "available" || updater.status === "downloading" || updater.status === "restarting" || updater.status === "error") && <UpdateDialog updater={updater} t={t} />}
         {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenSettings={() => moteApi.openAccessibilitySettings()} />}
+        {undoState && <UndoToast count={undoState.count} onUndo={handleUndo} t={t} />}
       </section>
     </main>
   );
