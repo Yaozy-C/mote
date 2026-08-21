@@ -2131,7 +2131,7 @@ dependencies = [
 
 [[package]]
 name = "mote"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "arboard",
  "block2",

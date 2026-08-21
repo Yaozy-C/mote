@@ -32,6 +32,16 @@ Mote is a private clipboard history app for macOS and Windows. It quietly record
 
 Download the newest build from [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest).
 
+### Install on macOS without an Apple developer account
+
+The macOS release is built in public GitHub Actions, but it is not notarized by Apple. Apple may therefore show “Apple could not verify Mote is free of malware” the first time it is opened.
+
+1. Open the downloaded DMG and drag **Mote** into **Applications**.
+2. In Finder, open **Applications**, Control-click (or right-click) **Mote**, and choose **Open**.
+3. Choose **Open** again in the confirmation dialog. Normal double-clicking works after this one-time approval.
+
+Do not disable Gatekeeper globally. Each release also includes `SHA256SUMS.txt`; run `shasum -a 256 <downloaded-file>` and compare the result with that file before installing.
+
 ## Keyboard shortcuts
 
 Every application shortcut can be changed from **Settings → Keyboard shortcuts**.
@@ -111,6 +121,6 @@ worker/                      Sites-compatible web preview worker
 
 ## Releases and updates
 
-Pushing a version tag such as `v0.3.0` runs the release workflow. It builds Apple Silicon and Intel DMGs, a Windows x64 NSIS installer, updater artifacts, and `latest.json`. Mote uses that GitHub Release metadata for in-app update checks.
+Pushing a version tag such as `v0.3.0` runs the release workflow. It builds Apple Silicon and Intel DMGs, a Windows x64 NSIS installer, updater artifacts, `latest.json`, and a consolidated `SHA256SUMS.txt`. Mote uses that GitHub Release metadata for in-app update checks.
 
-The updater artifacts are cryptographically signed. The Windows installer itself still needs an Authenticode certificate to avoid an “unknown publisher” warning on a fresh machine.
+The updater artifacts are cryptographically signed. The macOS application uses an ad-hoc signature and is not Apple-notarized; the Windows installer is not Authenticode-signed. Fresh machines may therefore show an unverified-developer or unknown-publisher warning.
