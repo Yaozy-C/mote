@@ -1,5 +1,14 @@
 const modifierCodes = new Set(["MetaLeft", "MetaRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight", "ShiftLeft", "ShiftRight"]);
 
+export function isWindowsPlatform() {
+  if (typeof navigator === "undefined") return false;
+  return /Windows/i.test(navigator.userAgent || navigator.platform || "");
+}
+
+export function primaryModifierLabel() {
+  return isWindowsPlatform() ? "Ctrl" : "⌘";
+}
+
 export function shortcutFromEvent(event) {
   if (modifierCodes.has(event.code)) return null;
   const modifiers = [];
@@ -22,6 +31,10 @@ export function matchesShortcut(event, shortcut) {
 }
 
 export function formatShortcut(shortcut, locale = "en-US") {
+  if (isWindowsPlatform()) {
+    const labels = { Meta: "Win", Control: "Ctrl", Alt: "Alt", Shift: "Shift", Space: locale.startsWith("zh") ? "空格" : "Space", Enter: "Enter", Backspace: "Backspace", Delete: "Delete", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
+    return String(shortcut).split("+").map((part) => labels[part] ?? part.replace(/^Key/, "").replace(/^Digit/, "")).join("+");
+  }
   const labels = { Meta: "⌘", Control: "⌃", Alt: "⌥", Shift: "⇧", Space: locale.startsWith("zh") ? "空格" : "Space", Enter: "↵", Backspace: "⌫", Delete: "⌦", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
   return String(shortcut).split("+").map((part) => labels[part] ?? part.replace(/^Key/, "").replace(/^Digit/, "")).join("");
 }

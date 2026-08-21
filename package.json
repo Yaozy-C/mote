@@ -13,7 +13,8 @@
     "desktop:dev": "tauri dev",
     "desktop:run": "npm run build:web && /Users/yaozhongyao/.cargo/bin/cargo run --release --features tauri/custom-protocol --manifest-path src-tauri/Cargo.toml",
     "desktop:build": "tauri build --bundles app",
-    "desktop:bundle:dmg": "tauri build --bundles dmg"
+    "desktop:bundle:dmg": "tauri build --bundles dmg",
+    "desktop:bundle:windows": "tauri build --bundles nsis"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

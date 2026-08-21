@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { IconArrowBackUp, IconClipboard, IconColorPicker, IconFile, IconLink, IconPinned, IconSearch, IconStack2, IconX } from "@tabler/icons-react";
-import { formatShortcut } from "../utils/shortcuts.js";
+import { formatShortcut, isWindowsPlatform, primaryModifierLabel } from "../utils/shortcuts.js";
 
 export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessibility, t, locale }) {
   const topics = useMemo(() => helpTopics(settings, permissionStatus, onOpenAccessibility, t, locale), [settings, permissionStatus, onOpenAccessibility, t, locale]);
@@ -29,8 +29,8 @@ function TipCard({ icon: Icon, title, body, shortcut, example, action }) {
 function helpTopics(settings, permissionStatus, onOpenAccessibility, t, locale) {
   return [
     { id: "start", icon: IconClipboard, label: t("help.topicStart"), eyebrow: t("help.quickStart"), title: t("help.startTitle"), intro: t("help.startIntro"), tips: [
-      { icon: IconClipboard, title: t("help.copyTitle"), body: t("help.copyBody"), shortcut: "⌘ C", example: <div className="example-clipping"><span>T</span><div><strong>{t("help.exampleText")}</strong><small>{t("help.exampleSaved")}</small></div></div> },
-      { icon: IconSearch, title: t("help.findTitle"), body: t("help.findBody"), shortcut: formatShortcut(settings.openShortcut, locale), example: <div className="example-search"><IconSearch size={15} /><span>{t("help.exampleSearch")}</span><kbd>⌘K</kbd></div> },
+      { icon: IconClipboard, title: t("help.copyTitle"), body: t("help.copyBody"), shortcut: `${primaryModifierLabel()}${isWindowsPlatform() ? "+" : " "}C`, example: <div className="example-clipping"><span>T</span><div><strong>{t("help.exampleText")}</strong><small>{t("help.exampleSaved")}</small></div></div> },
+      { icon: IconSearch, title: t("help.findTitle"), body: t("help.findBody"), shortcut: formatShortcut(settings.openShortcut, locale), example: <div className="example-search"><IconSearch size={15} /><span>{t("help.exampleSearch")}</span><kbd>{primaryModifierLabel()}K</kbd></div> },
       { icon: IconClipboard, title: t("help.pasteTitle"), body: t("help.pasteBody"), shortcut: "↵", example: <div className="example-button"><IconClipboard size={15} />{t("action.paste")}</div> },
     ]},
     { id: "content", icon: IconColorPicker, label: t("help.topicContent"), eyebrow: t("help.contentEyebrow"), title: t("help.contentTitle"), intro: t("help.contentIntro"), tips: [
@@ -49,7 +49,7 @@ function helpTopics(settings, permissionStatus, onOpenAccessibility, t, locale) 
     ]},
     { id: "permissions", icon: IconClipboard, label: t("help.topicPermissions"), eyebrow: t("settings.permissions"), title: t("help.permissionTitle"), intro: t("help.permissionIntro"), tips: [
       { icon: IconClipboard, title: t("permission.capture"), body: t("help.captureBody"), example: <StatusExample ready={permissionStatus.clipboardCapture} t={t} /> },
-      { icon: IconClipboard, title: t("permission.autoPaste"), body: t("permission.helpBody"), example: <StatusExample ready={permissionStatus.accessibility} t={t} />, action: !permissionStatus.accessibility && <button className="tip-action" onClick={onOpenAccessibility}>{t("permission.fix")}</button> },
+      { icon: IconClipboard, title: t("permission.autoPaste"), body: t(isWindowsPlatform() ? "permission.windowsPasteBody" : "permission.helpBody"), example: <StatusExample ready={permissionStatus.accessibility} t={t} />, action: !permissionStatus.accessibility && <button className="tip-action" onClick={onOpenAccessibility}>{t("permission.fix")}</button> },
     ]},
   ];
 }

@@ -41,11 +41,11 @@ function UpdateRow({ updater, t }) {
   );
 }
 
-export function SettingsPopover({ settings, onChange, onClear, onOpenShortcuts, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
+export function SettingsPopover({ popoverRef, settings, onChange, onClear, onOpenShortcuts, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
   const [section, setSection] = useState("general");
   const update = (patch) => onChange({ ...settings, ...patch });
   return (
-    <aside className="settings-popover" role="dialog" aria-label={`Mote ${t("settings.title")}`}>
+    <aside ref={popoverRef} className="settings-popover" role="dialog" aria-label={`Mote ${t("settings.title")}`}>
       <header className="settings-header">
         <img src="/assets/mote-logo.png" alt="" />
         <span><strong>{t("settings.title")}</strong><small>{t("settings.subtitle")}</small></span>

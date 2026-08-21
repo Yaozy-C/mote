@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Mote",
+        "width": 1440,
+        "height": 1024,
+        "minWidth": 920,
+        "minHeight": 700,
+        "center": true,
+        "decorations": true,
+        "titleBarStyle": "Visible",
+        "hiddenTitle": false,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["nsis"]
+  }
+}

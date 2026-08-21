@@ -1,4 +1,5 @@
 const now = Date.now();
+const windows = typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent || navigator.platform || "");
 
 export const demoItems = [
   { id: 1, kind: "image", title: "Flower photograph", content: "/assets/dahlia-preview.png", detail: "Text + HTML + Image", byteSize: "287 KB", createdAt: now - 60_000, pinned: false, formats: ["text", "html", "image"], representations: [
@@ -23,8 +24,8 @@ export const defaultSettings = {
   launchAtLogin: false,
   directPaste: true,
   excludeSensitiveApps: false,
-  openShortcut: "Alt+Space",
-  batchShortcut: "Alt+Shift+Space",
-  toggleBatchShortcut: "Meta+Shift+KeyM",
+  openShortcut: windows ? "Control+Shift+Space" : "Alt+Space",
+  batchShortcut: windows ? "Control+Alt+Space" : "Alt+Shift+Space",
+  toggleBatchShortcut: windows ? "Control+Shift+KeyM" : "Meta+Shift+KeyM",
   language: "auto",
 };

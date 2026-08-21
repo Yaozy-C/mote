@@ -64,6 +64,9 @@ pub(crate) fn replace_global_shortcuts(
 }
 
 fn show_main_window(app: &tauri::AppHandle) {
+    if let Ok(mut active) = app.state::<AppState>().last_active_app.lock() {
+        *active = platform::frontmost_app();
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
@@ -96,9 +99,6 @@ pub fn run() {
                         return;
                     };
                     if shortcut == &open_shortcut || shortcut == &batch_shortcut {
-                        if let Ok(mut active) = app.state::<AppState>().last_active_app.lock() {
-                            *active = platform::frontmost_app();
-                        }
                         show_main_window(app);
                         if shortcut == &batch_shortcut {
                             let _ = app.emit("mote://open-batch", ());

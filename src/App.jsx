@@ -15,7 +15,7 @@ import { UndoToast } from "./components/UndoToast.jsx";
 import { useAppUpdater } from "./hooks/useAppUpdater.js";
 import { useClipboardHistory } from "./hooks/useClipboardHistory.js";
 import { isDesktopRuntime, moteApi } from "./services/moteApi.js";
-import { formatShortcut, matchesShortcut } from "./utils/shortcuts.js";
+import { formatShortcut, isWindowsPlatform, matchesShortcut, primaryModifierLabel } from "./utils/shortcuts.js";
 import { createI18n } from "./i18n.js";
 
 export function App() {
@@ -32,6 +32,8 @@ export function App() {
   const [permissionStatus, setPermissionStatus] = useState({ clipboardCapture: history.settings.captureEnabled, accessibility: false });
   const [undoState, setUndoState] = useState(null);
   const searchRef = useRef(null);
+  const settingsButtonRef = useRef(null);
+  const settingsPopoverRef = useRef(null);
   const undoTimer = useRef(null);
   const didOfferHelp = useRef(false);
 
@@ -207,8 +209,19 @@ export function App() {
     return () => { window.removeEventListener("focus", refresh); window.clearTimeout(undoTimer.current); };
   }, [history.settings.captureEnabled]);
 
+  useEffect(() => {
+    if (!settingsOpen) return undefined;
+    const closeOnOutsidePointer = (event) => {
+      const path = event.composedPath?.() ?? [];
+      if (path.includes(settingsPopoverRef.current) || path.includes(settingsButtonRef.current)) return;
+      setSettingsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [settingsOpen]);
+
   return (
-    <main className={`desktop-stage ${isDesktopRuntime() ? "native-runtime" : ""} ${history.settings.reduceMotion ? "reduce-motion" : ""}`}>
+    <main className={`desktop-stage ${isDesktopRuntime() ? "native-runtime" : ""} ${isWindowsPlatform() ? "platform-windows" : "platform-macos"} ${history.settings.reduceMotion ? "reduce-motion" : ""}`}>
       <img className="ambient-background" src="/assets/mote-ambient-bg.png" alt="" />
       <ParticleField disabled={history.settings.reduceMotion} />
       <section className="mote-window" aria-label={`Mote ${t("history.label")}`}>
@@ -217,12 +230,12 @@ export function App() {
             <MagnifyingGlass size={18} weight="regular" />
             <input ref={searchRef} value={history.query} onChange={(event) => history.setQuery(event.target.value)} placeholder={t("search.placeholder")} aria-label={t("search.label")} />
             {history.query && <button className="clear-search" onClick={() => history.setQuery("")} aria-label={t("search.clear")}><X size={14} weight="bold" /></button>}
-            <span className="search-shortcut">⌘K</span>
+            <span className="search-shortcut">{primaryModifierLabel()}K</span>
           </div>
           <div className="title-actions">
             <button aria-label={t("app.pinSelected")} disabled={history.batchMode} onClick={() => runAction(history.togglePin)} className={history.selected?.pinned ? "active" : ""}><IconPinned size={18} stroke={1.75} aria-hidden="true" /></button>
             <button aria-label={t("app.openHelp")} onClick={() => { setSettingsOpen(false); setHelpOpen(true); }}><Question size={20} /></button>
-            <button aria-label={t("app.openSettings")} onClick={() => setSettingsOpen((value) => !value)}><GearSix size={20} /></button>
+            <button ref={settingsButtonRef} aria-label={t("app.openSettings")} onClick={() => setSettingsOpen((value) => !value)}><GearSix size={20} /></button>
           </div>
         </header>
 
@@ -239,14 +252,14 @@ export function App() {
               <button onClick={history.selectAllBatch}>{t("action.selectAll")}</button>
               <button onClick={history.cancelBatchSelection}>{t("action.cancel")}</button>
             </footer> : history.selected && <footer className="preview-actions">
-              <button className={`primary-action ${actionDone ? "copied" : ""}`} onClick={history.settings.directPaste ? handlePaste : handleCopy}>{actionDone ? <IconCheck size={18} stroke={2} aria-hidden="true" /> : history.settings.directPaste ? <IconClipboard size={18} stroke={1.75} aria-hidden="true" /> : <IconCopy size={18} stroke={1.75} aria-hidden="true" />} {actionDone ? actionDone.type === "copied" ? t("action.copied") : actionDone.count > 1 ? t("action.pastedCount", { count: actionDone.count }) : t("action.pasted") : history.settings.directPaste ? t("action.paste") : t("action.copy")}<kbd>{history.settings.directPaste ? "↵" : "⌘ ↵"}</kbd></button>
+              <button className={`primary-action ${actionDone ? "copied" : ""}`} onClick={history.settings.directPaste ? handlePaste : handleCopy}>{actionDone ? <IconCheck size={18} stroke={2} aria-hidden="true" /> : history.settings.directPaste ? <IconClipboard size={18} stroke={1.75} aria-hidden="true" /> : <IconCopy size={18} stroke={1.75} aria-hidden="true" />} {actionDone ? actionDone.type === "copied" ? t("action.copied") : actionDone.count > 1 ? t("action.pastedCount", { count: actionDone.count }) : t("action.pasted") : history.settings.directPaste ? t("action.paste") : t("action.copy")}<kbd>{history.settings.directPaste ? (isWindowsPlatform() ? "Enter" : "↵") : `${primaryModifierLabel()} ${isWindowsPlatform() ? "Enter" : "↵"}`}</kbd></button>
               <button onClick={() => runAction(history.togglePin)} className={history.selected.pinned ? "active" : ""}><IconPinned size={18} stroke={1.75} aria-hidden="true" />{history.selected.pinned ? t("action.pinned") : t("action.pin")}</button>
               <button className="delete-action" onClick={handleDelete}><IconTrash size={18} stroke={1.75} aria-hidden="true" /> {t("action.delete")}</button>
             </footer>}
           </section>
         </div>
 
-        {settingsOpen && <SettingsPopover settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} onOpenShortcuts={() => { setSettingsOpen(false); setShortcutOpen(true); }} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
+        {settingsOpen && <SettingsPopover popoverRef={settingsPopoverRef} settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} onOpenShortcuts={() => { setSettingsOpen(false); setShortcutOpen(true); }} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
           setSettingsOpen(false);
           setClearConfirmOpen(true);
         }} />}

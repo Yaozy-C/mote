@@ -2135,6 +2135,7 @@ version = "0.2.0"
 dependencies = [
  "arboard",
  "chrono",
+ "clipboard-win",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",

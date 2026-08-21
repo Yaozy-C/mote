@@ -74,10 +74,37 @@ impl Default for AppSettings {
             launch_at_login: false,
             direct_paste: true,
             exclude_sensitive_apps: false,
-            open_shortcut: "Alt+Space".into(),
-            batch_shortcut: "Alt+Shift+Space".into(),
-            toggle_batch_shortcut: "Meta+Shift+KeyM".into(),
+            open_shortcut: default_open_shortcut().into(),
+            batch_shortcut: default_batch_shortcut().into(),
+            toggle_batch_shortcut: default_toggle_batch_shortcut().into(),
             language: "auto".into(),
         }
     }
+}
+
+#[cfg(target_os = "windows")]
+fn default_open_shortcut() -> &'static str {
+    "Control+Shift+Space"
+}
+#[cfg(not(target_os = "windows"))]
+fn default_open_shortcut() -> &'static str {
+    "Alt+Space"
+}
+
+#[cfg(target_os = "windows")]
+fn default_batch_shortcut() -> &'static str {
+    "Control+Alt+Space"
+}
+#[cfg(not(target_os = "windows"))]
+fn default_batch_shortcut() -> &'static str {
+    "Alt+Shift+Space"
+}
+
+#[cfg(target_os = "windows")]
+fn default_toggle_batch_shortcut() -> &'static str {
+    "Control+Shift+KeyM"
+}
+#[cfg(not(target_os = "windows"))]
+fn default_toggle_batch_shortcut() -> &'static str {
+    "Meta+Shift+KeyM"
 }

@@ -5,7 +5,7 @@ export function useAppUpdater() {
   const updateRef = useRef(null);
   const [state, setState] = useState({
     status: "idle",
-    currentVersion: "0.1.0",
+    currentVersion: "0.2.0",
     nextVersion: "",
     notes: "",
     progress: 0,
