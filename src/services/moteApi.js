@@ -190,6 +190,11 @@ export const moteApi = {
     return listen("mote://focus-search", callback);
   },
 
+  async onWindowFocused(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://window-focused", callback);
+  },
+
   async onOpenBatch(callback) {
     if (!isDesktopRuntime()) return () => {};
     return listen("mote://open-batch", callback);

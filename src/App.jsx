@@ -231,9 +231,18 @@ export function App() {
   useEffect(() => {
     refreshPermissions();
     const refresh = () => refreshPermissions();
+    let disposeNativeFocus = () => {};
+    moteApi.onWindowFocused(refresh).then((unlisten) => { disposeNativeFocus = unlisten; });
     window.addEventListener("focus", refresh);
-    return () => { window.removeEventListener("focus", refresh); window.clearTimeout(undoTimer.current); };
+    return () => { disposeNativeFocus(); window.removeEventListener("focus", refresh); window.clearTimeout(undoTimer.current); };
   }, [history.settings.captureEnabled]);
+
+  useEffect(() => {
+    if (!settingsOpen) return undefined;
+    refreshPermissions();
+    const permissionTimer = window.setInterval(refreshPermissions, 1200);
+    return () => window.clearInterval(permissionTimer);
+  }, [settingsOpen, history.settings.captureEnabled]);
 
   useEffect(() => {
     if (!settingsOpen) return undefined;
