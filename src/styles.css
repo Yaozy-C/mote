@@ -229,8 +229,10 @@ button { color: inherit; }
 .shortcut-row button { min-width: 70px; cursor: pointer; }
 .shortcut-row button.recording { color: var(--accent); border-color: rgba(10,132,255,.5); box-shadow: 0 0 0 3px rgba(10,132,255,.12); }
 .clear-history { width: 100%; height: 34px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,59,48,.18); border-radius: 7px; color: #ff3b30; background: rgba(255,255,255,.5); font-size: 11px; cursor: pointer; }
+.update-setting-row button { height: 27px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid rgba(60,60,67,.15); border-radius: 6px; color: var(--accent); background: rgba(255,255,255,.8); font-size: 10px; cursor: pointer; }
+.update-setting-row button:disabled { color: var(--tertiary); cursor: default; }
 
-.help-backdrop, .error-backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.22); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: backdrop-enter .18s ease both; }
+.help-backdrop, .error-backdrop, .update-backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.22); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: backdrop-enter .18s ease both; }
 .help-dialog, .error-dialog { position: relative; border: 1px solid rgba(255,255,255,.7); border-radius: 14px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); animation: dialog-enter .24s var(--ease-mac) both; }
 .help-dialog { width: min(600px, 100%); max-height: calc(100% - 24px); overflow-y: auto; padding: 28px; scrollbar-width: none; }
 .help-dialog::-webkit-scrollbar { display: none; }
@@ -262,6 +264,22 @@ button { color: inherit; }
 .error-actions button { height: 34px; padding: 0 13px; border-radius: 7px; font-size: 12px; cursor: pointer; }
 .error-settings { display: flex; align-items: center; gap: 6px; border: 1px solid var(--accent); color: white; background: var(--accent); }
 .error-dismiss { border: 1px solid var(--separator); background: rgba(255,255,255,.7); }
+.update-dialog { position: relative; width: min(430px,100%); padding: 26px; border: 1px solid rgba(255,255,255,.72); border-radius: 15px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); text-align: center; animation: dialog-enter .24s var(--ease-mac) both; }
+.update-close { position: absolute; top: 11px; right: 11px; width: 29px; height: 29px; display: grid; place-items: center; border: 0; border-radius: 7px; color: var(--secondary); background: transparent; cursor: pointer; }
+.update-close:hover { background: rgba(118,118,128,.1); }
+.update-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 12px; border-radius: 13px; color: var(--accent); background: rgba(10,132,255,.1); }
+.update-icon.failed { color: #ff3b30; background: rgba(255,59,48,.1); }
+.update-eyebrow { margin: 0 0 5px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .1em; }
+.update-dialog h2 { margin: 0; font-size: 22px; letter-spacing: -.025em; }
+.update-detail { max-height: 116px; overflow-y: auto; margin: 8px 0 0; color: var(--secondary); font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+.update-progress { height: 5px; margin: 20px 0 0; overflow: hidden; border-radius: 99px; background: rgba(118,118,128,.14); }
+.update-progress span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease; }
+.update-actions { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+.update-actions button { min-width: 96px; height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.update-later { border: 1px solid var(--separator); color: var(--primary); background: rgba(255,255,255,.72); }
+.update-install { border: 1px solid var(--accent); color: white; background: var(--accent); }
+.update-install:disabled { opacity: .72; cursor: default; }
+.update-spinner { animation: update-spin .85s linear infinite; }
 
 @keyframes window-enter { from { opacity: 0; transform: translateY(8px) scale(.992); } to { opacity: 1; transform: none; } }
 @keyframes row-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
@@ -270,6 +288,7 @@ button { color: inherit; }
 @keyframes backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes dialog-enter { from { opacity: 0; transform: translateY(8px) scale(.975); } to { opacity: 1; transform: none; } }
 @keyframes action-confirm { 0% { transform: scale(.96); } 56% { transform: scale(1.025); } 100% { transform: none; } }
+@keyframes update-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 920px) {
   .mote-window { width: 100%; height: 100vh; min-height: 0; border-radius: 0; }

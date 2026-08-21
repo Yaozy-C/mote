@@ -8,6 +8,8 @@ import { HelpDialog } from "./components/HelpDialog.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
 import { ParticleField } from "./components/ParticleField.jsx";
 import { SettingsPopover } from "./components/SettingsPopover.jsx";
+import { UpdateDialog } from "./components/UpdateDialog.jsx";
+import { useAppUpdater } from "./hooks/useAppUpdater.js";
 import { useClipboardHistory } from "./hooks/useClipboardHistory.js";
 import { isDesktopRuntime, moteApi } from "./services/moteApi.js";
 import { formatShortcut, matchesShortcut } from "./utils/shortcuts.js";
@@ -15,6 +17,7 @@ import { createI18n } from "./i18n.js";
 
 export function App() {
   const history = useClipboardHistory();
+  const updater = useAppUpdater();
   const { locale, t } = createI18n(history.settings.language);
   const [actionDone, setActionDone] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -188,10 +191,11 @@ export function App() {
           </section>
         </div>
 
-        {settingsOpen && <SettingsPopover settings={history.settings} t={t} locale={locale} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
+        {settingsOpen && <SettingsPopover settings={history.settings} updater={updater} t={t} locale={locale} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
           if (window.confirm(t("confirm.clear"))) runAction(history.clearUnpinned);
         }} />}
         {helpOpen && <HelpDialog onClose={closeHelp} settings={history.settings} t={t} locale={locale} />}
+        {(updater.status === "available" || updater.status === "downloading" || updater.status === "restarting" || updater.status === "error") && <UpdateDialog updater={updater} t={t} />}
         {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenSettings={() => moteApi.openAccessibilitySettings()} />}
       </section>
     </main>

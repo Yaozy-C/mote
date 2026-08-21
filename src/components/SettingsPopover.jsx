@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Keyboard, Trash } from "@phosphor-icons/react";
+import { ArrowClockwise, Keyboard, Trash } from "@phosphor-icons/react";
 import { formatShortcut, shortcutFromEvent } from "../utils/shortcuts.js";
 
 function ToggleRow({ title, detail, checked, onChange }) {
@@ -43,7 +43,26 @@ function ShortcutRow({ title, detail, value, onChange, pressKeys, locale }) {
   );
 }
 
-export function SettingsPopover({ settings, onChange, onClear, t, locale }) {
+function UpdateRow({ updater, t }) {
+  const status = updater.status === "checking"
+    ? t("update.checking")
+    : updater.status === "current"
+      ? t("update.current")
+      : updater.status === "error"
+        ? t("update.checkFailed")
+        : t("update.version", { version: updater.currentVersion });
+  return (
+    <div className="setting-row update-setting-row">
+      <span className="setting-copy"><strong>{t("update.settingsTitle")}</strong><small>{status}</small></span>
+      <button disabled={updater.status === "checking"} onClick={() => updater.checkForUpdates()}>
+        <ArrowClockwise className={updater.status === "checking" ? "update-spinner" : ""} size={14} />
+        {t("update.check")}
+      </button>
+    </div>
+  );
+}
+
+export function SettingsPopover({ settings, onChange, onClear, updater, t, locale }) {
   const update = (patch) => onChange({ ...settings, ...patch });
   return (
     <aside className="settings-popover" role="dialog" aria-label={`Mote ${t("settings.title")}`}>
@@ -91,6 +110,11 @@ export function SettingsPopover({ settings, onChange, onClear, t, locale }) {
         <div className="settings-card">
           <ToggleRow title={t("settings.reduceMotion")} detail={t("settings.reduceMotionDetail")} checked={settings.reduceMotion} onChange={(value) => update({ reduceMotion: value })} />
         </div>
+      </section>
+
+      <section className="settings-section">
+        <p>{t("update.section")}</p>
+        <div className="settings-card"><UpdateRow updater={updater} t={t} /></div>
       </section>
 
       <button className="clear-history" onClick={onClear}><Trash size={16} /> {t("settings.clear")}</button>

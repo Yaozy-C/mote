@@ -36,6 +36,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -45,6 +46,17 @@
     ],
     "category": "Productivity",
     "shortDescription": "A warm, private clipboard history.",
-    "longDescription": "Mote stores clipboard history locally so copied text stays searchable and easy to reuse."
+    "longDescription": "Mote stores clipboard history locally so copied text stays searchable and easy to reuse.",
+    "macOS": {
+      "signingIdentity": "-"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg1NDM1N0Y2Mjk1NzIxMTEKUldRUklWY3A5bGREaFl6QkVPNUVCYldiZ1BmeVBFRE02Ukh0dDArTWNKWWVwV1JLOTZWWXZsRzAK",
+      "endpoints": [
+        "https://github.com/Yaozy-C/mote/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

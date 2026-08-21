@@ -6,6 +6,7 @@ src-tauri/target/
 .artifacts/
 .DS_Store
 *.log
+*.key
 
 .env
 .env.*
