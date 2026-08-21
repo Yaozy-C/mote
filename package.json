@@ -1,0 +1,31 @@
+{
+  "name": "mote",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "vite build",
+    "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "preview": "vite preview",
+    "test:sites": "node --test tests/sites-worker.test.mjs",
+    "tauri": "tauri",
+    "desktop:dev": "tauri dev",
+    "desktop:run": "npm run build:web && /Users/yaozhongyao/.cargo/bin/cargo run --release --features tauri/custom-protocol --manifest-path src-tauri/Cargo.toml",
+    "desktop:build": "tauri build --bundles app",
+    "desktop:bundle:dmg": "tauri build --bundles dmg"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@tabler/icons-react": "^3.46.0",
+    "@tauri-apps/api": "^2.11.1",
+    "@vitejs/plugin-react": "5.0.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "three": "^0.185.1",
+    "vite": "6.4.2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
+  }
+}

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+src-tauri/target/
+
+.idea/
+.artifacts/
+.DS_Store
+*.log
+
+.env
+.env.*
+!.env.example
+
+design-qa-*.png
+design-qa-*.jpg
+implementation-*.png
+qa-*.png
