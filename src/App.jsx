@@ -3,6 +3,7 @@ import { GearSix, MagnifyingGlass, Question, X } from "@phosphor-icons/react";
 import { IconCheck, IconClipboard, IconCopy, IconPinned, IconTrash } from "@tabler/icons-react";
 import { DetailPreview } from "./components/DetailPreview.jsx";
 import { BatchPreview } from "./components/BatchPreview.jsx";
+import { ClearHistoryDialog } from "./components/ClearHistoryDialog.jsx";
 import { ErrorDialog } from "./components/ErrorDialog.jsx";
 import { HelpDialog } from "./components/HelpDialog.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
@@ -22,6 +23,8 @@ export function App() {
   const [actionDone, setActionDone] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
   const [actionError, setActionError] = useState("");
   const searchRef = useRef(null);
   const didOfferHelp = useRef(false);
@@ -66,10 +69,11 @@ export function App() {
         return;
       }
       if (event.key === "Escape") {
-        if (actionError || settingsOpen || helpOpen) {
+        if (actionError || settingsOpen || helpOpen || clearConfirmOpen) {
           setActionError("");
           setSettingsOpen(false);
           setHelpOpen(false);
+          if (!clearingHistory) setClearConfirmOpen(false);
         } else if (history.batchMode) {
           history.cancelBatchSelection();
         } else {
@@ -77,7 +81,7 @@ export function App() {
         }
         searchRef.current?.blur();
       }
-      if (actionError || helpOpen || settingsOpen) return;
+      if (actionError || helpOpen || settingsOpen || clearConfirmOpen) return;
       if (history.batchMode) {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") {
           event.preventDefault();
@@ -110,7 +114,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [actionError, helpOpen, settingsOpen, history]);
+  }, [actionError, clearConfirmOpen, clearingHistory, helpOpen, settingsOpen, history]);
 
   useEffect(() => {
     let dispose = () => {};
@@ -149,6 +153,20 @@ export function App() {
     setHelpOpen(false);
     if (!history.settings.hasSeenHelp) {
       runAction(() => history.saveSettings({ ...history.settings, hasSeenHelp: true }));
+    }
+  };
+
+  const handleClearHistory = async () => {
+    setClearingHistory(true);
+    try {
+      setActionError("");
+      await history.clearUnpinned();
+      setClearConfirmOpen(false);
+    } catch (cause) {
+      setClearConfirmOpen(false);
+      setActionError(String(cause));
+    } finally {
+      setClearingHistory(false);
     }
   };
 
@@ -192,9 +210,11 @@ export function App() {
         </div>
 
         {settingsOpen && <SettingsPopover settings={history.settings} updater={updater} t={t} locale={locale} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
-          if (window.confirm(t("confirm.clear"))) runAction(history.clearUnpinned);
+          setSettingsOpen(false);
+          setClearConfirmOpen(true);
         }} />}
         {helpOpen && <HelpDialog onClose={closeHelp} settings={history.settings} t={t} locale={locale} />}
+        {clearConfirmOpen && <ClearHistoryDialog busy={clearingHistory} onCancel={() => setClearConfirmOpen(false)} onConfirm={handleClearHistory} t={t} />}
         {(updater.status === "available" || updater.status === "downloading" || updater.status === "restarting" || updater.status === "error") && <UpdateDialog updater={updater} t={t} />}
         {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenSettings={() => moteApi.openAccessibilitySettings()} />}
       </section>
