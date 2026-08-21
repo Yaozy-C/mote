@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowClockwise, CheckCircle, Keyboard, Trash, WarningCircle } from "@phosphor-icons/react";
 
 function ToggleRow({ title, detail, checked, onChange }) {
@@ -43,7 +43,23 @@ function UpdateRow({ updater, t }) {
 
 export function SettingsPopover({ popoverRef, settings, onChange, onClear, onOpenShortcuts, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
   const [section, setSection] = useState("general");
+  const [permissionCheck, setPermissionCheck] = useState("idle");
+  useEffect(() => {
+    if (permissionStatus.accessibility) setPermissionCheck("ready");
+  }, [permissionStatus.accessibility]);
   const update = (patch) => onChange({ ...settings, ...patch });
+  const checkPermissions = async () => {
+    setPermissionCheck("checking");
+    const status = await onRefreshPermissions();
+    setPermissionCheck(status?.accessibility ? "ready" : "needed");
+  };
+  const permissionCheckLabel = permissionCheck === "checking"
+    ? t("permission.checking")
+    : permissionCheck === "ready"
+      ? t("permission.checkedReady")
+      : permissionCheck === "needed"
+        ? t("permission.stillNeeded")
+        : t("permission.checkAgain");
   return (
     <aside ref={popoverRef} className="settings-popover" role="dialog" aria-label={`Mote ${t("settings.title")}`}>
       <header className="settings-header">
@@ -61,8 +77,9 @@ export function SettingsPopover({ popoverRef, settings, onChange, onClear, onOpe
         <div className="settings-card permission-card">
           <PermissionRow title={t("permission.capture")} detail={permissionStatus.clipboardCapture ? t("permission.ready") : t("permission.captureOff")} ready={permissionStatus.clipboardCapture} />
           <PermissionRow title={t("permission.autoPaste")} detail={permissionStatus.accessibility ? t("permission.ready") : t("permission.accessibilityNeeded")} ready={permissionStatus.accessibility} action={!permissionStatus.accessibility && <button onClick={onOpenAccessibility}>{t("permission.fix")}</button>} />
-          <button className="permission-refresh" onClick={onRefreshPermissions}><ArrowClockwise size={13} />{t("permission.checkAgain")}</button>
+          <button className={`permission-refresh ${permissionCheck}`} disabled={permissionCheck === "checking"} onClick={checkPermissions} aria-live="polite">{permissionCheck === "ready" ? <CheckCircle size={13} weight="fill" /> : <ArrowClockwise className={permissionCheck === "checking" ? "update-spinner" : ""} size={13} />}{permissionCheckLabel}</button>
         </div>
+        {permissionCheck === "needed" && <small className="permission-check-note">{t("permission.restartHint")}</small>}
       </section>
 
       <section className="settings-section">

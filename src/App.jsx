@@ -207,7 +207,14 @@ export function App() {
   };
 
   const refreshPermissions = async () => {
-    try { setPermissionStatus(await moteApi.getPermissionStatus()); } catch (cause) { setActionError(String(cause)); }
+    try {
+      const status = await moteApi.getPermissionStatus();
+      setPermissionStatus(status);
+      return status;
+    } catch (cause) {
+      setActionError(String(cause));
+      return null;
+    }
   };
 
   const offerUndo = (ids) => {

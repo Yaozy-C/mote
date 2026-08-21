@@ -52,7 +52,7 @@ Sampled colors are copied immediately and stored as normal color records, so the
 
 Mote does not require an account or a cloud service. Clipboard records and cached image previews stay in the operating system's application-data directory and are stored in a local SQLite database.
 
-- **macOS:** Accessibility permission is only used to send the paste shortcut to the app that was active before Mote opened.
+- **macOS:** Accessibility permission is only used to send the paste shortcut to the app that was active before Mote opened. Opening System Settings does not grant access by itself: turn on the Mote switch under **Privacy & Security → Accessibility**. If macOS still reports Mote as untrusted, quit and reopen Mote after enabling it.
 - **Windows:** no separate accessibility permission is required. Windows may prevent a normal application from pasting into an application running as administrator.
 - **Sensitive apps:** optional password-manager exclusion prevents Mote from recording clipboard changes while a recognized sensitive app is active.
 
