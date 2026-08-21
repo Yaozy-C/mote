@@ -231,6 +231,7 @@ button { color: inherit; }
 .clear-history { width: 100%; height: 34px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,59,48,.18); border-radius: 7px; color: #ff3b30; background: rgba(255,255,255,.5); font-size: 11px; cursor: pointer; }
 .update-setting-row button { height: 27px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid rgba(60,60,67,.15); border-radius: 6px; color: var(--accent); background: rgba(255,255,255,.8); font-size: 10px; cursor: pointer; }
 .update-setting-row button:disabled { color: var(--tertiary); cursor: default; }
+.update-setting-row button.is-current { color: #248a3d; border-color: rgba(52,199,89,.24); background: rgba(52,199,89,.08); }
 
 .help-backdrop, .error-backdrop, .update-backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.22); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: backdrop-enter .18s ease both; }
 .help-dialog, .error-dialog { position: relative; border: 1px solid rgba(255,255,255,.7); border-radius: 14px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); animation: dialog-enter .24s var(--ease-mac) both; }

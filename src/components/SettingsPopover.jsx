@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowClockwise, Keyboard, Trash } from "@phosphor-icons/react";
+import { ArrowClockwise, CheckCircle, Keyboard, Trash } from "@phosphor-icons/react";
 import { formatShortcut, shortcutFromEvent } from "../utils/shortcuts.js";
 
 function ToggleRow({ title, detail, checked, onChange }) {
@@ -44,6 +44,8 @@ function ShortcutRow({ title, detail, value, onChange, pressKeys, locale }) {
 }
 
 function UpdateRow({ updater, t }) {
+  const checking = updater.status === "checking";
+  const current = updater.status === "current";
   const status = updater.status === "checking"
     ? t("update.checking")
     : updater.status === "current"
@@ -54,9 +56,9 @@ function UpdateRow({ updater, t }) {
   return (
     <div className="setting-row update-setting-row">
       <span className="setting-copy"><strong>{t("update.settingsTitle")}</strong><small>{status}</small></span>
-      <button disabled={updater.status === "checking"} onClick={() => updater.checkForUpdates()}>
-        <ArrowClockwise className={updater.status === "checking" ? "update-spinner" : ""} size={14} />
-        {t("update.check")}
+      <button className={current ? "is-current" : ""} disabled={checking} onClick={() => updater.checkForUpdates()} aria-live="polite">
+        {current ? <CheckCircle size={14} weight="fill" /> : <ArrowClockwise className={checking ? "update-spinner" : ""} size={14} />}
+        {checking ? t("update.checkingAction") : current ? t("update.checkedAction") : t("update.check")}
       </button>
     </div>
   );

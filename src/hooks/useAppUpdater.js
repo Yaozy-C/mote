@@ -22,6 +22,9 @@ export function useAppUpdater() {
 
   const checkForUpdates = useCallback(async ({ silent = false } = {}) => {
     if (!isDesktopRuntime()) {
+      if (silent) return null;
+      setState((value) => ({ ...value, status: "checking", error: "" }));
+      await new Promise((resolve) => window.setTimeout(resolve, 550));
       setState((value) => ({ ...value, status: "current", error: "" }));
       return null;
     }
@@ -29,7 +32,10 @@ export function useAppUpdater() {
     setState((value) => ({ ...value, status: "checking", error: "" }));
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
-      const update = await check();
+      const update = await Promise.race([
+        check(),
+        new Promise((_, reject) => window.setTimeout(() => reject(new Error("Update check timed out")), 15000)),
+      ]);
       updateRef.current = update;
       if (!update) {
         setState((value) => ({ ...value, status: "current", nextVersion: "", notes: "" }));
@@ -53,6 +59,7 @@ export function useAppUpdater() {
   }, []);
 
   useEffect(() => {
+    if (!isDesktopRuntime()) return undefined;
     const timer = window.setTimeout(() => checkForUpdates({ silent: true }), 1800);
     return () => window.clearTimeout(timer);
   }, [checkForUpdates]);
