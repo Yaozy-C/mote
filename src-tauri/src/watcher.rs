@@ -346,7 +346,7 @@ fn snapshot_from_representations(
     })
 }
 
-fn snapshot_hash(representations: &[ClipboardRepresentation]) -> String {
+pub(crate) fn snapshot_hash(representations: &[ClipboardRepresentation]) -> String {
     let mut hasher = Sha256::new();
     for representation in representations {
         hasher.update(representation.item_index.to_le_bytes());

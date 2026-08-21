@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GearSix, MagnifyingGlass, Question, X } from "@phosphor-icons/react";
-import { IconCheck, IconClipboard, IconCopy, IconPinned, IconTrash } from "@tabler/icons-react";
+import { IconCheck, IconClipboard, IconColorPicker, IconCopy, IconPinned, IconTrash } from "@tabler/icons-react";
 import { DetailPreview } from "./components/DetailPreview.jsx";
 import { BatchPreview } from "./components/BatchPreview.jsx";
 import { ClearHistoryDialog } from "./components/ClearHistoryDialog.jsx";
@@ -62,11 +62,23 @@ export function App() {
     });
   };
 
+  const handlePickColor = () => runAction(async () => {
+    setSettingsOpen(false);
+    setHelpOpen(false);
+    const item = await moteApi.pickColor();
+    if (item) await history.selectNewItem(item);
+  });
+
   useEffect(() => {
     const onKey = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         searchRef.current?.focus();
+      }
+      if (matchesShortcut(event, history.settings.colorShortcut)) {
+        event.preventDefault();
+        handlePickColor();
+        return;
       }
       if (matchesShortcut(event, history.settings.toggleBatchShortcut)) {
         event.preventDefault();
@@ -146,6 +158,20 @@ export function App() {
     }).then((unlisten) => { dispose = unlisten; });
     return () => dispose();
   }, [history.startBatchSelection]);
+
+  useEffect(() => {
+    let dispose = () => {};
+    moteApi.onOpenColorPicker(() => handlePickColor()).then((unlisten) => { dispose = unlisten; });
+    return () => dispose();
+  }, [history.selectNewItem]);
+
+  useEffect(() => {
+    let disposePicked = () => {};
+    let disposeError = () => {};
+    moteApi.onColorPicked((item) => history.selectNewItem(item)).then((unlisten) => { disposePicked = unlisten; });
+    moteApi.onColorPickerError((message) => setActionError(String(message))).then((unlisten) => { disposeError = unlisten; });
+    return () => { disposePicked(); disposeError(); };
+  }, [history.selectNewItem]);
 
   useEffect(() => {
     document.querySelector(`[data-item-id="${history.selectedId}"]`)?.scrollIntoView({ block: "nearest" });
@@ -233,6 +259,7 @@ export function App() {
             <span className="search-shortcut">{primaryModifierLabel()}K</span>
           </div>
           <div className="title-actions">
+            <button className="color-picker-action" aria-label={`${t("app.pickColor")} ${formatShortcut(history.settings.colorShortcut, locale)}`} title={`${t("app.pickColor")} · ${formatShortcut(history.settings.colorShortcut, locale)}`} onClick={handlePickColor}><IconColorPicker size={18} stroke={1.75} aria-hidden="true" /></button>
             <button aria-label={t("app.pinSelected")} disabled={history.batchMode} onClick={() => runAction(history.togglePin)} className={history.selected?.pinned ? "active" : ""}><IconPinned size={18} stroke={1.75} aria-hidden="true" /></button>
             <button aria-label={t("app.openHelp")} onClick={() => { setSettingsOpen(false); setHelpOpen(true); }}><Question size={20} /></button>
             <button ref={settingsButtonRef} aria-label={t("app.openSettings")} onClick={() => setSettingsOpen((value) => !value)}><GearSix size={20} /></button>

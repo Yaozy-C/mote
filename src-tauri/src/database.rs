@@ -93,6 +93,33 @@ impl Database {
             "ALTER TABLE clipboard_items ADD COLUMN deleted_at INTEGER",
             [],
         );
+        // Early color-picker builds stored sampled HEX values with a picker-specific hash,
+        // then the clipboard watcher stored the same value again. Consolidate those rows.
+        connection.execute_batch(
+            r#"
+            UPDATE clipboard_items AS item
+            SET pinned = 1
+            WHERE item.kind = 'color'
+              AND item.deleted_at IS NULL
+              AND EXISTS (
+                SELECT 1 FROM clipboard_items AS duplicate
+                WHERE duplicate.kind = 'color'
+                  AND duplicate.deleted_at IS NULL
+                  AND UPPER(duplicate.content) = UPPER(item.content)
+                  AND duplicate.pinned = 1
+              );
+
+            DELETE FROM clipboard_items
+            WHERE kind = 'color'
+              AND deleted_at IS NULL
+              AND id NOT IN (
+                SELECT MAX(id)
+                FROM clipboard_items
+                WHERE kind = 'color' AND deleted_at IS NULL
+                GROUP BY UPPER(content)
+              );
+            "#,
+        )?;
         Ok(())
     }
 
@@ -458,6 +485,14 @@ mod tests {
         }
     }
 
+    fn color_snapshot(value: &str, hash: &str) -> NewClipboardItem {
+        let mut snapshot = text_snapshot(value);
+        snapshot.kind = "color".into();
+        snapshot.detail = "Color".into();
+        snapshot.content_hash = hash.into();
+        snapshot
+    }
+
     #[test]
     fn persists_and_searches_items() {
         let database = Database::open(std::path::Path::new(":memory:")).unwrap();
@@ -541,5 +576,24 @@ mod tests {
         }];
         let item = database.insert_snapshot(snapshot, 100).unwrap();
         assert!(item.missing_files);
+    }
+
+    #[test]
+    fn consolidates_legacy_picker_and_watcher_color_rows() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let first = database
+            .insert_snapshot(color_snapshot("#FE7A23", "legacy-picker-hash"), 100)
+            .unwrap();
+        database.toggle_pin(first.id).unwrap();
+        database
+            .insert_snapshot(color_snapshot("#FE7A23", "watcher-hash"), 100)
+            .unwrap();
+
+        database.migrate().unwrap();
+
+        let colors = database.list_items(None, 100).unwrap();
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].content, "#FE7A23");
+        assert!(colors[0].pinned);
     }
 }

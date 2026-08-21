@@ -139,6 +139,35 @@ export const moteApi = {
     return navigator.clipboard.writeText(value);
   },
 
+  async pickColor() {
+    if (isDesktopRuntime()) return invoke("start_color_picker");
+    if (!window.EyeDropper) throw new Error("The system color picker is unavailable in this browser.");
+    let result;
+    try {
+      result = await new window.EyeDropper().open();
+    } catch (error) {
+      if (error?.name === "AbortError") return null;
+      throw error;
+    }
+    const { sRGBHex } = result;
+    const color = sRGBHex.toUpperCase();
+    const items = loadDemoItems();
+    const existing = items.find((item) => item.kind === "color" && item.content.toUpperCase() === color);
+    const item = normalizeItem({
+      id: existing?.id ?? Math.max(0, ...items.map((candidate) => Number(candidate.id))) + 1,
+      kind: "color",
+      title: color,
+      content: color,
+      detail: "Picked color",
+      byteSize: null,
+      createdAt: Date.now(),
+      pinned: existing?.pinned ?? false,
+    });
+    saveDemoItems([item, ...items.filter((candidate) => candidate.id !== item.id)]);
+    await navigator.clipboard.writeText(color);
+    return item;
+  },
+
   async getSettings() {
     return isDesktopRuntime() ? invoke("get_settings") : loadDemoSettings();
   },
@@ -164,5 +193,20 @@ export const moteApi = {
   async onOpenBatch(callback) {
     if (!isDesktopRuntime()) return () => {};
     return listen("mote://open-batch", callback);
+  },
+
+  async onOpenColorPicker(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://open-color-picker", callback);
+  },
+
+  async onColorPicked(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://color-picked", (event) => callback(event.payload));
+  },
+
+  async onColorPickerError(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://color-picker-error", (event) => callback(event.payload));
   },
 };

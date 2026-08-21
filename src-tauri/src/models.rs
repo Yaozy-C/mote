@@ -59,6 +59,7 @@ pub struct AppSettings {
     pub exclude_sensitive_apps: bool,
     pub open_shortcut: String,
     pub batch_shortcut: String,
+    pub color_shortcut: String,
     pub toggle_batch_shortcut: String,
     pub language: String,
 }
@@ -76,6 +77,7 @@ impl Default for AppSettings {
             exclude_sensitive_apps: false,
             open_shortcut: default_open_shortcut().into(),
             batch_shortcut: default_batch_shortcut().into(),
+            color_shortcut: default_color_shortcut().into(),
             toggle_batch_shortcut: default_toggle_batch_shortcut().into(),
             language: "auto".into(),
         }
@@ -98,6 +100,15 @@ fn default_batch_shortcut() -> &'static str {
 #[cfg(not(target_os = "windows"))]
 fn default_batch_shortcut() -> &'static str {
     "Alt+Shift+Space"
+}
+
+#[cfg(target_os = "windows")]
+fn default_color_shortcut() -> &'static str {
+    "Control+Shift+KeyC"
+}
+#[cfg(not(target_os = "windows"))]
+fn default_color_shortcut() -> &'static str {
+    "Alt+Shift+KeyC"
 }
 
 #[cfg(target_os = "windows")]
