@@ -64,7 +64,7 @@ export function useClipboardHistory() {
   }, [selected]);
 
   const batchSelectedItems = useMemo(
-    () => items.filter((item) => batchSelectedIds.includes(item.id)).sort((a, b) => a.createdAt - b.createdAt),
+    () => batchSelectedIds.map((id) => items.find((item) => item.id === id)).filter(Boolean),
     [batchSelectedIds, items],
   );
 
@@ -83,18 +83,23 @@ export function useClipboardHistory() {
   }, []);
 
   const selectAllBatch = useCallback(() => {
-    setBatchSelectedIds(items.map((item) => item.id));
+    setBatchSelectedIds(items.slice().sort((a, b) => a.createdAt - b.createdAt).map((item) => item.id));
   }, [items]);
+
+  const moveBatchItem = useCallback((id, offset) => {
+    setBatchSelectedIds((current) => {
+      const index = current.indexOf(id);
+      const nextIndex = index + offset;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }, []);
 
   const pasteBatch = useCallback(async () => {
     if (!batchSelectedItems.length) return;
     await moteApi.pasteItems(batchSelectedItems);
-    cancelBatchSelection();
-  }, [batchSelectedItems, cancelBatchSelection]);
-
-  const pasteBatchMerged = useCallback(async () => {
-    if (!batchSelectedItems.length) return;
-    await moteApi.pasteItemsMerged(batchSelectedItems);
     cancelBatchSelection();
   }, [batchSelectedItems, cancelBatchSelection]);
 
@@ -152,8 +157,8 @@ export function useClipboardHistory() {
     cancelBatchSelection,
     toggleBatchSelection,
     selectAllBatch,
+    moveBatchItem,
     pasteBatch,
-    pasteBatchMerged,
     query,
     setQuery,
     settings,

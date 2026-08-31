@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowClockwise, CheckCircle, Keyboard, Trash, WarningCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, CheckCircle, Trash, WarningCircle } from "@phosphor-icons/react";
 
 function ToggleRow({ title, detail, checked, onChange }) {
   return (
@@ -41,7 +41,7 @@ function UpdateRow({ updater, t }) {
   );
 }
 
-export function SettingsPopover({ popoverRef, settings, onChange, onClear, onOpenShortcuts, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
+export function SettingsPopover({ popoverRef, settings, onChange, onClear, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
   const [section, setSection] = useState("general");
   const [permissionCheck, setPermissionCheck] = useState("idle");
   useEffect(() => {
@@ -94,7 +94,6 @@ export function SettingsPopover({ popoverRef, settings, onChange, onClear, onOpe
         </div>
       </section>
 
-      <button className="open-shortcuts" onClick={onOpenShortcuts}><Keyboard size={17} /><span><strong>{t("settings.shortcuts")}</strong><small>{t("shortcut.settingsDetail")}</small></span><span>›</span></button>
       </>}
 
       {section === "privacy" && <>

@@ -78,13 +78,6 @@ export const moteApi = {
     await navigator.clipboard.writeText(items.map((item) => item.kind === "image" ? item.title : item.content).join("\n"));
   },
 
-  async pasteItemsMerged(items) {
-    if (isDesktopRuntime()) {
-      return invoke("paste_clipboard_items_merged", { ids: items.map((item) => item.id), separator: "\n" });
-    }
-    await navigator.clipboard.writeText(items.map(plainTextValue).join("\n"));
-  },
-
   async togglePin(id) {
     if (isDesktopRuntime()) {
       return invoke("toggle_clipboard_pin", { id });
@@ -154,6 +147,18 @@ export const moteApi = {
   async copyText(value) {
     if (isDesktopRuntime()) return invoke("copy_text_value", { value });
     return navigator.clipboard.writeText(value);
+  },
+
+  async copyOcrText(item) {
+    if (!item.ocrText?.trim()) throw new Error("Recognized text is not available for this image yet.");
+    if (isDesktopRuntime()) return invoke("copy_text_value", { value: item.ocrText });
+    return navigator.clipboard.writeText(item.ocrText);
+  },
+
+  async pasteOcrText(item) {
+    if (!item.ocrText?.trim()) throw new Error("Recognized text is not available for this image yet.");
+    if (isDesktopRuntime()) return invoke("paste_text_value", { value: item.ocrText });
+    return navigator.clipboard.writeText(item.ocrText);
   },
 
   async pickColor() {

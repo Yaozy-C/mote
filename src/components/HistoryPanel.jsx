@@ -5,7 +5,7 @@ import { localizedItemDetail } from "../i18n.js";
 export function HistoryPanel({ items, selectedId, onSelect, loading, error, batchMode = false, batchSelectedIds = [], onStartBatch, onCancelBatch, onToggleBatch, toggleShortcut, t, locale }) {
   if (loading) return <aside className="history-panel" aria-label={t("history.label")}><div className="empty-state"><strong>{t("history.loading")}</strong></div></aside>;
   if (error) return <aside className="history-panel" aria-label={t("history.label")}><div className="empty-state"><strong>{t("history.unavailable")}</strong><span>{error}</span></div></aside>;
-  const queueOrder = items.filter((item) => batchSelectedIds.includes(item.id)).sort((a, b) => a.createdAt - b.createdAt).map((item) => item.id);
+  const queueOrder = batchSelectedIds;
 
   return (
     <aside className="history-panel" aria-label={t("history.label")}>

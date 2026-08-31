@@ -1,7 +1,7 @@
 import { Stack } from "@phosphor-icons/react";
 import { BatchQueueItem, batchPreviewKind } from "./batch/BatchQueueItem.jsx";
 
-export function BatchPreview({ items, t }) {
+export function BatchPreview({ items, onMoveItem, t }) {
   const visualItems = items.filter((item) => ["image", "compound", "color"].includes(batchPreviewKind(item))).length;
   const layout = items.length <= 8 && visualItems >= Math.ceil(items.length / 2) ? "visual" : items.length <= 4 ? "comfortable" : "list";
   return (
@@ -15,9 +15,9 @@ export function BatchPreview({ items, t }) {
         </div>
       </header>
       {items.length > 0 && <ol className="batch-preview-content">{items.map((item, index) => (
-        <BatchQueueItem item={item} order={index + 1} key={item.id} />
+        <BatchQueueItem item={item} order={index + 1} isFirst={index === 0} isLast={index === items.length - 1} onMoveUp={() => onMoveItem(item.id, -1)} onMoveDown={() => onMoveItem(item.id, 1)} t={t} key={item.id} />
       ))}</ol>}
-      <div className="batch-shortcuts"><span><kbd>↑ ↓</kbd> {t("multi.move")}</span><span><kbd>{t("key.space")}</kbd> {t("multi.addRemove")}</span><span><kbd>↵</kbd> {t("multi.paste")}</span></div>
+      <div className="batch-shortcuts"><span><kbd>⌥ ↑ ↓</kbd> {t("multi.reorder")}</span><span><kbd>{t("key.space")}</kbd> {t("multi.addRemove")}</span><span><kbd>↵</kbd> {t("multi.paste")}</span></div>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-use std::{path::Path, thread, time::Duration};
+use std::{collections::BTreeMap, path::Path, thread, time::Duration};
 
 use tauri::{image::Image, AppHandle, Emitter, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
@@ -6,13 +6,13 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::{
     error::{AppError, AppResult},
-    models::{AppSettings, ClipboardItem, PermissionStatus},
+    models::{AppSettings, ClipboardItem, ClipboardRepresentation, PermissionStatus},
     platform,
     state::AppState,
 };
 
 #[cfg(target_os = "macos")]
-use crate::models::{ClipboardRepresentation, NewClipboardItem};
+use crate::models::NewClipboardItem;
 #[cfg(target_os = "macos")]
 use block2::RcBlock;
 #[cfg(target_os = "macos")]
@@ -119,70 +119,71 @@ pub fn paste_clipboard_items(
     if ids.is_empty() {
         return Ok(());
     }
-    let mut items = ids
+    let items = ids
         .into_iter()
         .map(|id| state.database.get_item(id))
         .collect::<AppResult<Vec<_>>>()?;
-    items.sort_by_key(|item| item.created_at);
-    let bundle = state
-        .last_active_app
-        .lock()
-        .ok()
-        .and_then(|value| value.clone());
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
-    }
-    thread::sleep(Duration::from_millis(80));
-
-    let item_count = items.len();
-    for (index, item) in items.into_iter().enumerate() {
-        let result = write_clipboard_item(&app, item)
-            .and_then(|_| platform::paste_into(bundle.as_deref()).map_err(AppError::Clipboard));
-        if let Err(error) = result {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-            return Err(error);
-        }
-        if index + 1 < item_count {
-            thread::sleep(Duration::from_millis(70));
-        }
-    }
-    Ok(())
+    let representations =
+        combine_representations(items.iter().map(|item| item.representations.as_slice()));
+    platform::write_representations(&representations).map_err(AppError::Clipboard)?;
+    paste_current_clipboard(&app, &state)
 }
 
-#[tauri::command]
-pub fn paste_clipboard_items_merged(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    ids: Vec<i64>,
-    separator: Option<String>,
-) -> AppResult<()> {
-    if ids.is_empty() {
-        return Ok(());
+fn combine_representations<'a>(
+    groups: impl IntoIterator<Item = &'a [ClipboardRepresentation]>,
+) -> Vec<ClipboardRepresentation> {
+    let mut combined = Vec::new();
+    let mut next_item_index = 0;
+    for representations in groups {
+        let index_map = representations
+            .iter()
+            .map(|representation| representation.item_index)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .enumerate()
+            .map(|(offset, item_index)| (item_index, next_item_index + offset as i64))
+            .collect::<BTreeMap<_, _>>();
+        next_item_index += index_map.len() as i64;
+        for representation in representations {
+            let mut combined_representation = representation.clone();
+            combined_representation.item_index = index_map[&representation.item_index];
+            combined.push(combined_representation);
+        }
     }
-    let mut items = ids
-        .into_iter()
-        .map(|id| state.database.get_item(id))
-        .collect::<AppResult<Vec<_>>>()?;
-    items.sort_by_key(|item| item.created_at);
-    let values = items
-        .iter()
-        .map(plain_text_for_item)
-        .collect::<AppResult<Vec<_>>>()?;
-    let value = values
-        .into_iter()
-        .filter(|value| !value.trim().is_empty())
-        .collect::<Vec<_>>()
-        .join(separator.as_deref().unwrap_or("\n"));
-    if value.is_empty() {
-        return Err(AppError::Clipboard(
-            "The selected records do not have text that can be merged yet.".into(),
-        ));
+    combined
+}
+
+#[cfg(test)]
+mod combined_paste_tests {
+    use super::*;
+
+    fn representation(item_index: i64, format: &str) -> ClipboardRepresentation {
+        ClipboardRepresentation {
+            item_index,
+            format: format.into(),
+            content: format.into(),
+            byte_size: None,
+            native_type: None,
+            binary: false,
+        }
     }
-    write_plain_text(&app, value)?;
-    paste_current_clipboard(&app, &state)
+
+    #[test]
+    fn preserves_selected_and_internal_item_order() {
+        let first = vec![representation(4, "text"), representation(4, "html")];
+        let second = vec![representation(0, "image"), representation(2, "text")];
+
+        let combined = combine_representations([first.as_slice(), second.as_slice()]);
+        let order = combined
+            .iter()
+            .map(|value| (value.item_index, value.format.as_str()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            order,
+            vec![(0, "text"), (0, "html"), (1, "image"), (2, "text")]
+        );
+    }
 }
 
 fn write_plain_text(app: &AppHandle, value: String) -> AppResult<()> {
@@ -310,6 +311,19 @@ pub fn copy_text_value(app: AppHandle, value: String) -> AppResult<()> {
     app.clipboard()
         .write_text(value)
         .map_err(|error| AppError::Clipboard(error.to_string()))
+}
+
+#[tauri::command]
+pub fn paste_text_value(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    value: String,
+) -> AppResult<()> {
+    if value.trim().is_empty() {
+        return Err(AppError::Clipboard("There is no text to paste.".into()));
+    }
+    write_plain_text(&app, value)?;
+    paste_current_clipboard(&app, &state)
 }
 
 #[tauri::command]
