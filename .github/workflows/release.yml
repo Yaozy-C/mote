@@ -47,7 +47,7 @@ jobs:
           releaseBody: |
             Download the installer for your platform. Mote will use this release for future automatic updates.
 
-            The macOS build is open source but is not notarized by Apple. On first launch, move Mote to Applications, then Control-click Mote and choose Open. Verify downloads against SHA256SUMS.txt.
+            The macOS build is open source but is not notarized by Apple. On first launch, move Mote to Applications, try opening it once, then use System Settings → Privacy & Security → Open Anyway. Verify downloads against SHA256SUMS.txt.
           releaseDraft: false
           prerelease: false
           generateReleaseNotes: true
@@ -83,7 +83,7 @@ jobs:
           releaseBody: |
             Download the installer for your platform. Mote will use this release for future automatic updates.
 
-            The macOS build is open source but is not notarized by Apple. On first launch, move Mote to Applications, then Control-click Mote and choose Open. Verify downloads against SHA256SUMS.txt.
+            The macOS build is open source but is not notarized by Apple. On first launch, move Mote to Applications, try opening it once, then use System Settings → Privacy & Security → Open Anyway. Verify downloads against SHA256SUMS.txt.
           releaseDraft: false
           prerelease: false
           generateReleaseNotes: true

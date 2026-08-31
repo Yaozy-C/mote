@@ -37,8 +37,9 @@ Download the newest build from [GitHub Releases](https://github.com/Yaozy-C/mote
 The macOS release is built in public GitHub Actions, but it is not notarized by Apple. Apple may therefore show “Apple could not verify Mote is free of malware” the first time it is opened.
 
 1. Open the downloaded DMG and drag **Mote** into **Applications**.
-2. In Finder, open **Applications**, Control-click (or right-click) **Mote**, and choose **Open**.
-3. Choose **Open** again in the confirmation dialog. Normal double-clicking works after this one-time approval.
+2. Double-click **Mote** once. When macOS shows the verification warning, choose **Done** instead of moving the app to the Trash.
+3. Open **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to the Mote message.
+4. Authenticate when prompted, then confirm **Open**. Normal double-clicking works after this one-time approval.
 
 Do not disable Gatekeeper globally. Each release also includes `SHA256SUMS.txt`; run `shasum -a 256 <downloaded-file>` and compare the result with that file before installing.
 

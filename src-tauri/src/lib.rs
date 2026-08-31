@@ -12,7 +12,7 @@ use models::AppSettings;
 use state::AppState;
 use std::sync::{Arc, Mutex};
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, MenuItemKind},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
@@ -87,6 +87,15 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+fn show_about_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("about") {
+        let _ = window.unminimize();
+        let _ = window.center();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -150,6 +159,24 @@ pub fn run() {
                 Err(error) => eprintln!("Mote shortcut settings are invalid: {error}"),
             }
 
+            #[cfg(target_os = "macos")]
+            {
+                let app_menu = Menu::default(app.handle())?;
+                if let Some(MenuItemKind::Submenu(mote_menu)) = app_menu.items()?.into_iter().next()
+                {
+                    let _ = mote_menu.remove_at(0)?;
+                    let about = MenuItem::with_id(
+                        app,
+                        "about-mote",
+                        "About Mote",
+                        true,
+                        None::<&str>,
+                    )?;
+                    mote_menu.insert(&about, 0)?;
+                }
+                app.set_menu(app_menu)?;
+            }
+
             let open = MenuItem::with_id(app, "open", "Open Mote", true, None::<&str>)?;
             let clear =
                 MenuItem::with_id(app, "clear", "Clear Unpinned History", true, None::<&str>)?;
@@ -181,6 +208,11 @@ pub fn run() {
                 })
                 .build(app)?;
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "about-mote" {
+                show_about_window(app);
+            }
         })
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } => {
