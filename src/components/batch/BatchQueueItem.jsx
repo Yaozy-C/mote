@@ -1,6 +1,7 @@
 import { imageSource } from "../../services/moteApi.js";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 
-export function BatchQueueItem({ item, order }) {
+export function BatchQueueItem({ item, order, isFirst, isLast, onMoveUp, onMoveDown, t }) {
   const preview = previewModel(item);
   return (
     <li className={`batch-queue-item batch-kind-${preview.kind}`}>
@@ -10,6 +11,10 @@ export function BatchQueueItem({ item, order }) {
         {preview.color && <ColorContent value={preview.color} />}
         {preview.text && <TextContent text={preview.text} code={preview.kind === "code"} />}
       </article>
+      <span className="batch-reorder" aria-label={t("multi.reorder")}>
+        <button disabled={isFirst} onClick={onMoveUp} aria-label={t("multi.moveUp")} title={t("multi.moveUp")}><IconChevronUp size={16} stroke={1.75} /></button>
+        <button disabled={isLast} onClick={onMoveDown} aria-label={t("multi.moveDown")} title={t("multi.moveDown")}><IconChevronDown size={16} stroke={1.75} /></button>
+      </span>
     </li>
   );
 }

@@ -1,46 +1,43 @@
-# Mote design QA
+# Design QA — Mote About Window
 
-- Source visual truth: `/Users/yaozhongyao/.codex/generated_images/01a004e5-253d-71c1-a0ef-4965122a6006/exec-daa79ce4-d62a-43b0-8e37-b715b6fe3315.png`
-- Implementation screenshot: `/Users/yaozhongyao/WebstormProjects/mote/design-qa-implementation.png`
-- Full-view comparison: `/Users/yaozhongyao/WebstormProjects/mote/design-qa-comparison.jpg`
-- Focused toolbar/selection comparison: `/Users/yaozhongyao/WebstormProjects/mote/design-qa-focus.jpg`
-- Viewport: 1440 × 1024 CSS pixels, desktop, light appearance, selected compound clipboard record
-- Source pixels: 1488 × 1056; normalized to 1440 × 1024 for comparison
-- Implementation pixels: 1440 × 1024 at device scale factor 1
-
-## Required fidelity surfaces
-
-- Fonts and typography: passes. The implementation uses the macOS system font stack with compact 11–14 px utility text and 22–25 px detail hierarchy. Weight, truncation, antialiasing, and line height match the native-neutral target.
-- Spacing and layout rhythm: passes. The integrated 64 px toolbar, split-view proportions, compact history rows, thin separators, 7–14 px radii, and persistent action footer reproduce the source hierarchy without the previous card-heavy spacing.
-- Colors and visual tokens: passes. Neutral system grays and white materials dominate; system blue is restricted to selection, focus, and the primary action. Destructive red and success green remain semantic.
-- Image quality and asset fidelity: passes. Existing full-resolution clipboard imagery and the supplied Mote icon are used directly. No placeholder, CSS-drawn asset, or broken image remains.
-- Copy and content: passes. Product copy remains localized and functional. A multi-format clipboard event appears as one selected record and one continuous preview; format-selector tabs are absent.
-
-## Interaction verification
-
-- Selected different history rows and verified exactly one selected state.
-- Verified detail replacement uses the `detail-enter` transition and stays scrollable.
-- Opened Settings and Help; verified `popover-enter`, `dialog-enter`, and backdrop transitions.
-- Enabled Reduce Motion and verified motion duration collapses to 0.001 ms and the particle field is hidden; restored the setting afterward.
-- Checked the browser console after primary interactions: no warnings or errors.
-- Verified body width equals viewport width and persistent actions remain visible.
-
-## Comparison history
-
-1. Initial pass — blocked
-   - P1: the selected compound record preferred its HTML representation and displayed a broken image instead of showing the image and associated rich text as one event.
-   - P2: the browser prototype frame had substantially larger outer margins than the selected source visual.
-   - Fixes: built a unified compound renderer that shows image plus rich text without format tabs, strips sourceless HTML images, and enlarged the prototype frame to the source proportions.
-2. Final pass — passed
-   - Post-fix evidence: the final comparison shows a continuous image-and-text preview, matching split-view density, system-blue selection, compact toolbar, neutral material palette, and no broken assets or viewport overflow.
+- Source visual truth: `/Users/yaozhongyao/.codex/generated_images/01a0245d-46aa-7563-8584-aaea7bcb6208/exec-b5680059-db17-4d81-a470-126ff53324c7.png`
+- Implementation screenshot: `/Users/yaozhongyao/WebstormProjects/mote/design-qa-about-window-implementation.png`
+- Combined comparison: `/Users/yaozhongyao/WebstormProjects/mote/design-qa-about-window-comparison.png`
+- Viewport: 420 × 315 CSS px
+- Source pixels: 1448 × 1086, normalized to 420 × 315 for comparison
+- Implementation pixels: 420 × 315 at browser density 1
+- State: Simplified Chinese, current version, update status ready
 
 ## Findings
 
-- No actionable P0, P1, or P2 mismatch remains.
-- P3: the generated source contains additional filter controls and a document-within-document preview that do not map to the current product data. Keeping the existing simpler product behavior is intentional.
+No actionable P0, P1, or P2 differences remain.
 
-## Follow-up polish
+- Fonts and typography: The implementation uses the macOS system stack with matching compact hierarchy, weight, line height, and centered alignment. The Chinese copy is an intentional localization of the English visual target.
+- Spacing and layout rhythm: Identity, tagline, divider, version status, update action, and copyright preserve the source ordering and compact 4:3 frame. The native Tauri window supplies the traffic lights omitted by the browser-only content capture.
+- Colors and visual tokens: Neutral system surfaces, tertiary gray text, subtle divider, and macOS blue action match the selected direction.
+- Image quality and asset fidelity: The real Mote raster icon is used at native aspect ratio with no placeholder or code-drawn substitute.
+- Copy and content: GitHub is absent as requested. Product name, localized tagline, version, live status, update action, and copyright are present.
+- Interaction: “Check for Updates…” visibly enters the checking state and returns to the current-version state. Browser console errors checked: none.
 
-- Fine-tune transition timing after testing inside the release WebView on a 120 Hz Mac display.
+Focused-region comparison was unnecessary because the complete component and all typography remain clearly readable in the normalized full-view comparison.
+
+## Comparison History
+
+1. Initial implementation: the identity group was oversized and the copyright sat too close to the bottom edge. The icon/title scale and bottom padding were tightened.
+2. First revision: the divider collapsed to zero height inside the flex layout. It was given a fixed flex basis, then measured at 344 × 1 px in the final browser capture.
+3. Final revision: the full-view comparison shows no remaining actionable P0/P1/P2 mismatch.
+
+## Implementation Checklist
+
+- [x] Use the real Mote icon.
+- [x] Replace the standard About panel with the custom Mote window.
+- [x] Remove GitHub from the selected design.
+- [x] Connect update checking and update installation states.
+- [x] Localize English and Simplified Chinese copy.
+- [x] Verify the 420 × 315 viewport and console.
+
+## Follow-up Polish
+
+- P3: Verify native traffic-light positioning on the next packaged macOS build; the browser preview validates only the webview content region.
 
 final result: passed

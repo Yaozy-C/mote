@@ -2,6 +2,12 @@ use std::{collections::BTreeMap, path::Path, process::Command};
 
 use crate::models::ClipboardRepresentation;
 
+#[derive(Debug, Clone)]
+pub struct SourceApplication {
+    pub id: String,
+    pub name: String,
+}
+
 #[cfg(target_os = "macos")]
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
@@ -408,6 +414,26 @@ pub fn frontmost_app() -> Option<String> {
     (!bundle.is_empty()).then_some(bundle)
 }
 
+#[cfg(target_os = "macos")]
+pub fn frontmost_app_details() -> Option<SourceApplication> {
+    let output = Command::new("osascript")
+        .args([
+            "-e",
+            "tell application \"System Events\" to tell first application process whose frontmost is true to return (name as text) & \"MOTE_APP_SEPARATOR\" & (bundle identifier as text)",
+        ])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout);
+    let (name, id) = value.trim().split_once("MOTE_APP_SEPARATOR")?;
+    (!name.is_empty() && !id.is_empty()).then(|| SourceApplication {
+        id: id.to_string(),
+        name: name.to_string(),
+    })
+}
+
 #[cfg(target_os = "windows")]
 pub fn frontmost_app() -> Option<String> {
     const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
@@ -436,8 +462,32 @@ pub fn frontmost_app() -> Option<String> {
     }
 }
 
+#[cfg(target_os = "windows")]
+pub fn frontmost_app_details() -> Option<SourceApplication> {
+    let target = frontmost_app()?;
+    let path = target
+        .split_once('|')
+        .map(|(_, path)| path)
+        .unwrap_or(&target);
+    let name = Path::new(path)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("Unknown app")
+        .to_string();
+    Some(SourceApplication {
+        id: path.to_string(),
+        name,
+    })
+}
+
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub fn frontmost_app() -> Option<String> {
+    None
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub fn frontmost_app_details() -> Option<SourceApplication> {
     None
 }
 

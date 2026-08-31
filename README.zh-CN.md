@@ -32,6 +32,17 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 
 前往 [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest) 下载最新版本。
 
+### 未注册 Apple 开发者时安装 macOS 版
+
+macOS 安装包由公开的 GitHub Actions 构建，但没有经过 Apple 公证，因此首次打开时可能出现“Apple 无法验证 Mote 是否包含恶意软件”的提示。
+
+1. 打开下载的 DMG，把 **Mote** 拖入 **应用程序**。
+2. 双击一次 **Mote**。macOS 显示验证警告时，点击 **完成**，不要选择移到废纸篓。
+3. 打开 **系统设置 → 隐私与安全性**，向下滚动到 **安全性**，在 Mote 的提示旁点击 **仍要打开**。
+4. 按提示完成身份验证，再确认 **打开**。完成这一次授权后，之后可以正常双击启动。
+
+不要全局关闭 Gatekeeper。每个 Release 还会提供 `SHA256SUMS.txt`；安装前可运行 `shasum -a 256 <下载的文件>`，并将结果与该文件中的对应记录比较。
+
 ## 快捷键
 
 所有应用快捷键都可以在 **设置 → 键盘快捷键** 中修改。
@@ -52,7 +63,7 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 
 Mote 不需要账号，也不依赖云服务。剪贴板记录和图片预览缓存在操作系统的应用数据目录中，并保存在本地 SQLite 数据库里。
 
-- **macOS：**辅助功能权限只用于把粘贴快捷键发送给打开 Mote 之前正在使用的应用。
+- **macOS：**辅助功能权限只用于把粘贴快捷键发送给打开 Mote 之前正在使用的应用。仅打开系统设置并不会完成授权，还需要在 **隐私与安全性 → 辅助功能** 中开启 Mote；如果 macOS 仍显示未授权，请在开启后退出并重新打开 Mote。
 - **Windows：**不需要单独授予辅助功能权限；如果目标应用以管理员身份运行，Windows 可能会阻止普通权限的 Mote 向其中粘贴。
 - **敏感应用：**可以开启“忽略密码管理器”，当识别到敏感应用处于前台时不记录新的剪贴板内容。
 
@@ -111,6 +122,6 @@ worker/                      可交付到 Sites 的网页预览 Worker
 
 ## 发布与升级
 
-推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片和 Intel 版本的 DMG、Windows x64 NSIS 安装包、升级文件以及 `latest.json`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查。
+推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片和 Intel 版本的 DMG、Windows x64 NSIS 安装包、升级文件、`latest.json`，以及汇总全部安装文件的 `SHA256SUMS.txt`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查。
 
-升级文件已经使用密钥签名。Windows 安装包本身还需要配置 Authenticode 证书，才能避免新设备首次安装时出现“未知发布者”提示。
+升级文件已经使用密钥签名。macOS 应用目前使用临时签名且未经 Apple 公证；Windows 安装包也没有 Authenticode 签名。因此，新设备首次安装时仍可能显示“无法验证开发者”或“未知发布者”提示。

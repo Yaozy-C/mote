@@ -32,6 +32,17 @@ Mote is a private clipboard history app for macOS and Windows. It quietly record
 
 Download the newest build from [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest).
 
+### Install on macOS without an Apple developer account
+
+The macOS release is built in public GitHub Actions, but it is not notarized by Apple. Apple may therefore show “Apple could not verify Mote is free of malware” the first time it is opened.
+
+1. Open the downloaded DMG and drag **Mote** into **Applications**.
+2. Double-click **Mote** once. When macOS shows the verification warning, choose **Done** instead of moving the app to the Trash.
+3. Open **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to the Mote message.
+4. Authenticate when prompted, then confirm **Open**. Normal double-clicking works after this one-time approval.
+
+Do not disable Gatekeeper globally. Each release also includes `SHA256SUMS.txt`; run `shasum -a 256 <downloaded-file>` and compare the result with that file before installing.
+
 ## Keyboard shortcuts
 
 Every application shortcut can be changed from **Settings → Keyboard shortcuts**.
@@ -52,7 +63,7 @@ Sampled colors are copied immediately and stored as normal color records, so the
 
 Mote does not require an account or a cloud service. Clipboard records and cached image previews stay in the operating system's application-data directory and are stored in a local SQLite database.
 
-- **macOS:** Accessibility permission is only used to send the paste shortcut to the app that was active before Mote opened.
+- **macOS:** Accessibility permission is only used to send the paste shortcut to the app that was active before Mote opened. Opening System Settings does not grant access by itself: turn on the Mote switch under **Privacy & Security → Accessibility**. If macOS still reports Mote as untrusted, quit and reopen Mote after enabling it.
 - **Windows:** no separate accessibility permission is required. Windows may prevent a normal application from pasting into an application running as administrator.
 - **Sensitive apps:** optional password-manager exclusion prevents Mote from recording clipboard changes while a recognized sensitive app is active.
 
@@ -111,6 +122,6 @@ worker/                      Sites-compatible web preview worker
 
 ## Releases and updates
 
-Pushing a version tag such as `v0.3.0` runs the release workflow. It builds Apple Silicon and Intel DMGs, a Windows x64 NSIS installer, updater artifacts, and `latest.json`. Mote uses that GitHub Release metadata for in-app update checks.
+Pushing a version tag such as `v0.3.0` runs the release workflow. It builds Apple Silicon and Intel DMGs, a Windows x64 NSIS installer, updater artifacts, `latest.json`, and a consolidated `SHA256SUMS.txt`. Mote uses that GitHub Release metadata for in-app update checks.
 
-The updater artifacts are cryptographically signed. The Windows installer itself still needs an Authenticode certificate to avoid an “unknown publisher” warning on a fresh machine.
+The updater artifacts are cryptographically signed. The macOS application uses an ad-hoc signature and is not Apple-notarized; the Windows installer is not Authenticode-signed. Fresh machines may therefore show an unverified-developer or unknown-publisher warning.

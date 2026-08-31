@@ -1,4 +1,4 @@
-use std::{path::Path, thread, time::Duration};
+use std::{collections::BTreeMap, path::Path, thread, time::Duration};
 
 use tauri::{image::Image, AppHandle, Emitter, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
@@ -6,13 +6,13 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::{
     error::{AppError, AppResult},
-    models::{AppSettings, ClipboardItem, PermissionStatus},
+    models::{AppSettings, ClipboardItem, ClipboardRepresentation, PermissionStatus},
     platform,
     state::AppState,
 };
 
 #[cfg(target_os = "macos")]
-use crate::models::{ClipboardRepresentation, NewClipboardItem};
+use crate::models::NewClipboardItem;
 #[cfg(target_os = "macos")]
 use block2::RcBlock;
 #[cfg(target_os = "macos")]
@@ -32,6 +32,16 @@ pub fn list_clipboard_items(
 #[tauri::command]
 pub fn copy_clipboard_item(app: AppHandle, state: State<'_, AppState>, id: i64) -> AppResult<()> {
     write_item(&app, &state, id)
+}
+
+#[tauri::command]
+pub fn copy_clipboard_item_plain_text(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> AppResult<()> {
+    let item = state.database.get_item(id)?;
+    write_plain_text(&app, plain_text_for_item(&item)?)
 }
 
 fn write_item(app: &AppHandle, state: &AppState, id: i64) -> AppResult<()> {
@@ -89,6 +99,18 @@ pub fn paste_clipboard_item(app: AppHandle, state: State<'_, AppState>, id: i64)
 }
 
 #[tauri::command]
+pub fn paste_clipboard_item_plain_text(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> AppResult<()> {
+    let item = state.database.get_item(id)?;
+    let value = plain_text_for_item(&item)?;
+    write_plain_text(&app, value)?;
+    paste_current_clipboard(&app, &state)
+}
+
+#[tauri::command]
 pub fn paste_clipboard_items(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -97,35 +119,145 @@ pub fn paste_clipboard_items(
     if ids.is_empty() {
         return Ok(());
     }
-    let mut items = ids
+    let items = ids
         .into_iter()
         .map(|id| state.database.get_item(id))
         .collect::<AppResult<Vec<_>>>()?;
-    items.sort_by_key(|item| item.created_at);
+    let representations =
+        combine_representations(items.iter().map(|item| item.representations.as_slice()));
+    platform::write_representations(&representations).map_err(AppError::Clipboard)?;
+    paste_current_clipboard(&app, &state)
+}
+
+fn combine_representations<'a>(
+    groups: impl IntoIterator<Item = &'a [ClipboardRepresentation]>,
+) -> Vec<ClipboardRepresentation> {
+    let mut combined = Vec::new();
+    let mut next_item_index = 0;
+    for representations in groups {
+        let index_map = representations
+            .iter()
+            .map(|representation| representation.item_index)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .enumerate()
+            .map(|(offset, item_index)| (item_index, next_item_index + offset as i64))
+            .collect::<BTreeMap<_, _>>();
+        next_item_index += index_map.len() as i64;
+        for representation in representations {
+            let mut combined_representation = representation.clone();
+            combined_representation.item_index = index_map[&representation.item_index];
+            combined.push(combined_representation);
+        }
+    }
+    combined
+}
+
+#[cfg(test)]
+mod combined_paste_tests {
+    use super::*;
+
+    fn representation(item_index: i64, format: &str) -> ClipboardRepresentation {
+        ClipboardRepresentation {
+            item_index,
+            format: format.into(),
+            content: format.into(),
+            byte_size: None,
+            native_type: None,
+            binary: false,
+        }
+    }
+
+    #[test]
+    fn preserves_selected_and_internal_item_order() {
+        let first = vec![representation(4, "text"), representation(4, "html")];
+        let second = vec![representation(0, "image"), representation(2, "text")];
+
+        let combined = combine_representations([first.as_slice(), second.as_slice()]);
+        let order = combined
+            .iter()
+            .map(|value| (value.item_index, value.format.as_str()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            order,
+            vec![(0, "text"), (0, "html"), (1, "image"), (2, "text")]
+        );
+    }
+}
+
+fn write_plain_text(app: &AppHandle, value: String) -> AppResult<()> {
+    app.clipboard()
+        .write_text(value)
+        .map_err(|error| AppError::Clipboard(error.to_string()))
+}
+
+fn plain_text_for_item(item: &ClipboardItem) -> AppResult<String> {
+    if item.kind == "image" {
+        return item
+            .ocr_text
+            .clone()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| {
+                AppError::Clipboard("Recognized text is not available for this image yet.".into())
+            });
+    }
+    if let Some(value) = item
+        .representations
+        .iter()
+        .find(|value| matches!(value.format.as_str(), "text" | "url"))
+        .map(|value| value.content.clone())
+    {
+        return Ok(value);
+    }
+    if item.kind == "files" {
+        if let Ok(paths) = serde_json::from_str::<Vec<String>>(&item.content) {
+            return Ok(paths.join("\n"));
+        }
+    }
+    if !item.content.trim().is_empty() && !Path::new(&item.content).is_absolute() {
+        return Ok(strip_html(&item.content));
+    }
+    item.ocr_text
+        .clone()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| AppError::Clipboard("This record has no plain-text value.".into()))
+}
+
+fn strip_html(value: &str) -> String {
+    let mut output = String::with_capacity(value.len());
+    let mut inside_tag = false;
+    for character in value.chars() {
+        match character {
+            '<' => inside_tag = true,
+            '>' => inside_tag = false,
+            _ if !inside_tag => output.push(character),
+            _ => {}
+        }
+    }
+    output
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+}
+
+fn paste_current_clipboard(app: &AppHandle, state: &AppState) -> AppResult<()> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
     let bundle = state
         .last_active_app
         .lock()
         .ok()
         .and_then(|value| value.clone());
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
-    }
     thread::sleep(Duration::from_millis(80));
-
-    let item_count = items.len();
-    for (index, item) in items.into_iter().enumerate() {
-        let result = write_clipboard_item(&app, item)
-            .and_then(|_| platform::paste_into(bundle.as_deref()).map_err(AppError::Clipboard));
-        if let Err(error) = result {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-            return Err(error);
+    if let Err(error) = platform::paste_into(bundle.as_deref()) {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.set_focus();
         }
-        if index + 1 < item_count {
-            thread::sleep(Duration::from_millis(70));
-        }
+        return Err(AppError::Clipboard(error));
     }
     Ok(())
 }
@@ -182,6 +314,19 @@ pub fn copy_text_value(app: AppHandle, value: String) -> AppResult<()> {
 }
 
 #[tauri::command]
+pub fn paste_text_value(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    value: String,
+) -> AppResult<()> {
+    if value.trim().is_empty() {
+        return Err(AppError::Clipboard("There is no text to paste.".into()));
+    }
+    write_plain_text(&app, value)?;
+    paste_current_clipboard(&app, &state)
+}
+
+#[tauri::command]
 pub fn start_color_picker(app: AppHandle) -> AppResult<()> {
     #[cfg(target_os = "macos")]
     {
@@ -229,6 +374,8 @@ pub fn start_color_picker(app: AppHandle) -> AppResult<()> {
                     detail: "Picked color".into(),
                     byte_size: None,
                     content_hash: crate::watcher::snapshot_hash(&representations),
+                    source_app_id: None,
+                    source_app_name: None,
                     representations,
                 };
                 let state = callback_app.state::<AppState>();

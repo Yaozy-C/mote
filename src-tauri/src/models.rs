@@ -19,6 +19,8 @@ pub struct NewClipboardItem {
     pub detail: String,
     pub byte_size: Option<String>,
     pub content_hash: String,
+    pub source_app_id: Option<String>,
+    pub source_app_name: Option<String>,
     pub representations: Vec<ClipboardRepresentation>,
 }
 
@@ -33,6 +35,13 @@ pub struct ClipboardItem {
     pub byte_size: Option<String>,
     pub created_at: i64,
     pub pinned: bool,
+    pub source_app_id: Option<String>,
+    pub source_app_name: Option<String>,
+    pub ocr_text: Option<String>,
+    pub ocr_status: Option<String>,
+    pub ocr_engine: Option<String>,
+    pub ocr_confidence: Option<f64>,
+    pub ocr_has_formula: bool,
     pub missing_files: bool,
     pub formats: Vec<String>,
     pub representations: Vec<ClipboardRepresentation>,

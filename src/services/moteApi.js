@@ -43,7 +43,7 @@ export const moteApi = {
     }
     const normalized = query.trim().toLowerCase();
     return loadDemoItems()
-      .filter((item) => !normalized || `${item.title} ${item.content} ${item.detail}`.toLowerCase().includes(normalized))
+      .filter((item) => !normalized || `${item.title} ${item.content} ${item.detail} ${item.sourceAppName ?? ""} ${item.ocrText ?? ""}`.toLowerCase().includes(normalized))
       .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt - a.createdAt);
   },
 
@@ -54,11 +54,21 @@ export const moteApi = {
     await navigator.clipboard.writeText(item.kind === "image" ? item.title : item.content);
   },
 
+  async copyItemPlainText(item) {
+    if (isDesktopRuntime()) return invoke("copy_clipboard_item_plain_text", { id: item.id });
+    await navigator.clipboard.writeText(plainTextValue(item));
+  },
+
   async pasteItem(item) {
     if (isDesktopRuntime()) {
       return invoke("paste_clipboard_item", { id: item.id });
     }
     await navigator.clipboard.writeText(item.kind === "image" ? item.title : item.content);
+  },
+
+  async pasteItemPlainText(item) {
+    if (isDesktopRuntime()) return invoke("paste_clipboard_item_plain_text", { id: item.id });
+    await navigator.clipboard.writeText(plainTextValue(item));
   },
 
   async pasteItems(items) {
@@ -139,6 +149,18 @@ export const moteApi = {
     return navigator.clipboard.writeText(value);
   },
 
+  async copyOcrText(item) {
+    if (!item.ocrText?.trim()) throw new Error("Recognized text is not available for this image yet.");
+    if (isDesktopRuntime()) return invoke("copy_text_value", { value: item.ocrText });
+    return navigator.clipboard.writeText(item.ocrText);
+  },
+
+  async pasteOcrText(item) {
+    if (!item.ocrText?.trim()) throw new Error("Recognized text is not available for this image yet.");
+    if (isDesktopRuntime()) return invoke("paste_text_value", { value: item.ocrText });
+    return navigator.clipboard.writeText(item.ocrText);
+  },
+
   async pickColor() {
     if (isDesktopRuntime()) return invoke("start_color_picker");
     if (!window.EyeDropper) throw new Error("The system color picker is unavailable in this browser.");
@@ -190,6 +212,11 @@ export const moteApi = {
     return listen("mote://focus-search", callback);
   },
 
+  async onWindowFocused(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://window-focused", callback);
+  },
+
   async onOpenBatch(callback) {
     if (!isDesktopRuntime()) return () => {};
     return listen("mote://open-batch", callback);
@@ -210,3 +237,12 @@ export const moteApi = {
     return listen("mote://color-picker-error", (event) => callback(event.payload));
   },
 };
+
+function plainTextValue(item) {
+  if (item.kind === "image") {
+    if (!item.ocrText?.trim()) throw new Error("Recognized text is not available for this image yet.");
+    return item.ocrText;
+  }
+  const representation = item.representations?.find((value) => ["text", "url"].includes(value.format));
+  return representation?.content ?? item.content;
+}

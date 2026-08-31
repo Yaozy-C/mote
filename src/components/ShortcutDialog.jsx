@@ -7,7 +7,7 @@ export function ShortcutDialog({ settings, onChange, onClose, t, locale }) {
   return <div className="help-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="shortcut-dialog" role="dialog" aria-modal="true" aria-labelledby="shortcut-title">
       <button className="help-close" onClick={onClose} aria-label={t("shortcut.close")}><IconX size={18} stroke={1.75} /></button>
-      <header><span><IconCommand size={22} stroke={1.7} /></span><div><p>{t("settings.shortcuts")}</p><h2 id="shortcut-title">{t("shortcut.title")}</h2><small>{t("shortcut.intro")}</small></div></header>
+      <header><span><IconCommand size={22} stroke={1.7} /></span><div><p>{t("shortcut.eyebrow")}</p><h2 id="shortcut-title">{t("shortcut.title")}</h2><small>{t("shortcut.intro")}</small></div></header>
       <div className="shortcut-list">
         <ShortcutRow title={t("settings.openMote")} detail={t("settings.openMoteDetail")} value={settings.openShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ openShortcut: value })} />
         <ShortcutRow title={t("settings.openMultiple")} detail={t("settings.openMultipleDetail")} value={settings.batchShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ batchShortcut: value })} />

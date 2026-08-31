@@ -1,6 +1,6 @@
 [package]
 name = "mote"
-version = "0.3.0"
+version = "0.4.0"
 description = "Everything you copy, softly remembered."
 authors = ["Mote"]
 edition = "2021"
@@ -16,6 +16,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 arboard = "3"
 chrono = { version = "0.4", features = ["serde"] }
+image = "0.25"
+ocr-rs = "2.4.1"
 png = "0.18"
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }

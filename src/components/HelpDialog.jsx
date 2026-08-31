@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { IconArrowBackUp, IconClipboard, IconColorPicker, IconFile, IconLink, IconPinned, IconSearch, IconStack2, IconX } from "@tabler/icons-react";
+import { IconArrowBackUp, IconClipboard, IconColorPicker, IconFile, IconPinned, IconSearch, IconSparkles, IconStack2, IconX } from "@tabler/icons-react";
 import { formatShortcut, isWindowsPlatform, primaryModifierLabel } from "../utils/shortcuts.js";
 
 export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessibility, t, locale }) {
@@ -35,12 +35,13 @@ function helpTopics(settings, permissionStatus, onOpenAccessibility, t, locale) 
     ]},
     { id: "content", icon: IconColorPicker, label: t("help.topicContent"), eyebrow: t("help.contentEyebrow"), title: t("help.contentTitle"), intro: t("help.contentIntro"), tips: [
       { icon: IconStack2, title: t("help.combinedTitle"), body: t("help.combinedBody"), example: <div className="example-combined"><img src="/assets/source-reference.png" alt="" /><div><strong>{t("help.exampleCombined")}</strong><small>{t("help.exampleOneRecord")}</small></div></div> },
+      { icon: IconSparkles, title: t("help.ocrTitle"), body: t("help.ocrBody"), example: <div className="example-ocr"><IconSparkles size={16} /><div><strong>Orange dahlia…</strong><small>{t("help.ocrDerived")}</small></div></div> },
       { icon: IconColorPicker, title: t("help.colorsTitle"), body: t("help.colorsBody"), example: <div className="example-colors">{["#F08A63", "#E9B872", "#6E8C76", "#4A6078"].map((color) => <span key={color} style={{ background: color }} title={color} />)}</div> },
-      { icon: IconLink, title: t("help.actionsTitle"), body: t("help.actionsBody"), example: <div className="example-actions"><span><IconLink size={14} />{t("action.openLink")}</span><span><IconFile size={14} />{t("action.showInFinder")}</span></div> },
     ]},
     { id: "multiple", icon: IconStack2, label: t("help.topicMultiple"), eyebrow: t("multi.label"), title: t("help.multiTitle"), intro: t("help.multiIntro"), tips: [
       { icon: IconStack2, title: t("help.multiSelectTitle"), body: t("help.multiBody", { shortcut: formatShortcut(settings.toggleBatchShortcut, locale) }), shortcut: formatShortcut(settings.batchShortcut, locale), example: <div className="example-queue">{[1, 2, 3].map((number) => <span key={number}><b>{number}</b>{t(`help.queue${number}`)}</span>)}</div> },
       { icon: IconClipboard, title: t("help.orderTitle"), body: t("help.orderBody"), example: <div className="example-flow"><span>1</span><i>→</i><span>2</span><i>→</i><span>3</span></div> },
+      { icon: IconStack2, title: t("help.nativePasteTitle"), body: t("help.nativePasteBody"), example: <div className="example-actions"><span><IconClipboard size={14} />{t("type.text")}</span><span><IconFile size={14} />{t("type.files")}</span><span><IconStack2 size={14} />{t("type.image")}</span></div> },
     ]},
     { id: "manage", icon: IconPinned, label: t("help.topicManage"), eyebrow: t("help.manageEyebrow"), title: t("help.manageTitle"), intro: t("help.manageIntro"), tips: [
       { icon: IconPinned, title: t("help.pinTitle"), body: t("help.pinBody"), example: <div className="example-actions"><span><IconPinned size={14} />{t("action.pin")}</span></div> },

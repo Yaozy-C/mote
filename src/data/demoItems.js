@@ -2,7 +2,7 @@ const now = Date.now();
 const windows = typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent || navigator.platform || "");
 
 export const demoItems = [
-  { id: 1, kind: "image", title: "Flower photograph", content: "/assets/dahlia-preview.png", detail: "Text + HTML + Image", byteSize: "287 KB", createdAt: now - 60_000, pinned: false, formats: ["text", "html", "image"], representations: [
+  { id: 1, kind: "image", title: "Flower photograph", content: "/assets/dahlia-preview.png", detail: "Text + HTML + Image", byteSize: "287 KB", createdAt: now - 60_000, pinned: false, sourceAppId: "com.apple.Safari", sourceAppName: "Safari", ocrText: "Orange dahlia photographed in warm evening light.\nExposure: 1/250 s · f/2.8\nE = mc²", ocrStatus: "ready", ocrEngine: "PP-OCRv5 Mobile FP16", ocrConfidence: 0.94, ocrHasFormula: true, formats: ["text", "html", "image"], representations: [
     { itemIndex: 0, format: "text", content: "Orange dahlia photographed in warm evening light.", byteSize: null },
     { itemIndex: 0, format: "html", content: "<figure><img alt=\"Orange dahlia\"><figcaption>Warm evening light</figcaption></figure>", byteSize: null },
     { itemIndex: 0, format: "image", content: "/assets/dahlia-preview.png", byteSize: "287 KB" },

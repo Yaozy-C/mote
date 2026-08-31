@@ -18,7 +18,12 @@ use crate::{
 
 const MAX_CAPTURE_CHARS: usize = 100_000;
 
-pub fn spawn(app: AppHandle, database: Database, image_dir: PathBuf) {
+pub fn spawn(
+    app: AppHandle,
+    database: Database,
+    image_dir: PathBuf,
+    ocr_queue: crate::ocr::OcrQueue,
+) {
     thread::Builder::new()
         .name("mote-clipboard-watcher".into())
         .spawn(move || {
@@ -41,15 +46,29 @@ pub fn spawn(app: AppHandle, database: Database, image_dir: PathBuf) {
                     if !blocked {
                         let start_change = platform::pasteboard_change_count();
                         if start_change.is_none() || start_change != last_change_count {
-                            if let Some(snapshot) = capture_snapshot(&mut clipboard, &image_dir) {
+                            if let Some(mut snapshot) = capture_snapshot(&mut clipboard, &image_dir)
+                            {
                                 let end_change = platform::pasteboard_change_count();
                                 let stable = start_change.is_none() || start_change == end_change;
                                 if stable && snapshot.content_hash != last_snapshot_hash {
+                                    if let Some(source) = platform::frontmost_app_details()
+                                        .filter(|source| source.id != "com.mote.clipboard")
+                                    {
+                                        snapshot.source_app_id = Some(source.id);
+                                        snapshot.source_app_name = Some(source.name);
+                                    }
                                     last_snapshot_hash = snapshot.content_hash.clone();
                                     last_change_count = end_change;
                                     if let Ok(item) =
                                         database.insert_snapshot(snapshot, settings.history_limit)
                                     {
+                                        let images = item
+                                            .representations
+                                            .iter()
+                                            .filter(|value| value.format == "image")
+                                            .map(|value| value.content.clone())
+                                            .collect::<Vec<_>>();
+                                        ocr_queue.enqueue(item.id, images);
                                         let _ = app.emit("mote://clipboard-changed", item);
                                     }
                                 }
@@ -173,6 +192,8 @@ fn capture_snapshot(
             detail: format_label,
             byte_size: Some(format_bytes(stored_size)),
             content_hash,
+            source_app_id: None,
+            source_app_name: None,
             representations,
         })
     } else if let Some(value) = text {
@@ -189,6 +210,8 @@ fn capture_snapshot(
             detail,
             byte_size: None,
             content_hash,
+            source_app_id: None,
+            source_app_name: None,
             representations,
         })
     } else if let Some(value) = html {
@@ -199,6 +222,8 @@ fn capture_snapshot(
             detail: format_label,
             byte_size: None,
             content_hash,
+            source_app_id: None,
+            source_app_name: None,
             representations,
         })
     } else {
@@ -219,6 +244,8 @@ fn capture_snapshot(
             detail: format_label,
             byte_size: None,
             content_hash,
+            source_app_id: None,
+            source_app_name: None,
             representations,
         })
     }
@@ -342,6 +369,8 @@ fn snapshot_from_representations(
         detail,
         byte_size,
         content_hash,
+        source_app_id: None,
+        source_app_name: None,
         representations,
     })
 }

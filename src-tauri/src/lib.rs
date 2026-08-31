@@ -3,6 +3,7 @@ mod commands;
 mod database;
 mod error;
 mod models;
+mod ocr;
 mod platform;
 mod state;
 mod watcher;
@@ -12,7 +13,7 @@ use models::AppSettings;
 use state::AppState;
 use std::sync::{Arc, Mutex};
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, MenuItemKind},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
@@ -87,6 +88,15 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+fn show_about_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("about") {
+        let _ = window.unminimize();
+        let _ = window.center();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -131,7 +141,19 @@ pub fn run() {
                 database: database.clone(),
                 last_active_app: Arc::new(Mutex::new(None)),
             });
-            watcher::spawn(app.handle().clone(), database, data_dir.join("images"));
+            let bundled_models = app.path().resource_dir()?.join("models");
+            let model_dir = if bundled_models.exists() {
+                bundled_models
+            } else {
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("models")
+            };
+            let ocr_queue = ocr::spawn(app.handle().clone(), database.clone(), model_dir);
+            watcher::spawn(
+                app.handle().clone(),
+                database,
+                data_dir.join("images"),
+                ocr_queue,
+            );
 
             let settings = app
                 .state::<AppState>()
@@ -148,6 +170,19 @@ pub fn run() {
                     }
                 }
                 Err(error) => eprintln!("Mote shortcut settings are invalid: {error}"),
+            }
+
+            #[cfg(target_os = "macos")]
+            {
+                let app_menu = Menu::default(app.handle())?;
+                if let Some(MenuItemKind::Submenu(mote_menu)) = app_menu.items()?.into_iter().next()
+                {
+                    let _ = mote_menu.remove_at(0)?;
+                    let about =
+                        MenuItem::with_id(app, "about-mote", "About Mote", true, None::<&str>)?;
+                    mote_menu.insert(&about, 0)?;
+                }
+                app.set_menu(app_menu)?;
             }
 
             let open = MenuItem::with_id(app, "open", "Open Mote", true, None::<&str>)?;
@@ -182,16 +217,27 @@ pub fn run() {
                 .build(app)?;
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "about-mote" {
+                show_about_window(app);
+            }
+        })
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            WindowEvent::Focused(true) => {
+                let _ = window.emit("mote://window-focused", ());
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_clipboard_items,
             commands::copy_clipboard_item,
+            commands::copy_clipboard_item_plain_text,
             commands::paste_clipboard_item,
+            commands::paste_clipboard_item_plain_text,
             commands::paste_clipboard_items,
             commands::toggle_clipboard_pin,
             commands::delete_clipboard_item,
@@ -204,6 +250,7 @@ pub fn run() {
             commands::reveal_file,
             commands::check_file_paths,
             commands::copy_text_value,
+            commands::paste_text_value,
             commands::start_color_picker,
             commands::get_settings,
             commands::update_settings,
