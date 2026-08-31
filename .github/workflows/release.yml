@@ -10,8 +10,25 @@ permissions:
   contents: write
 
 jobs:
+  prepare-release:
+    name: Prepare GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create release once before parallel uploads
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "Mote v$(node -p "require('./src-tauri/tauri.conf.json').version")" \
+              --generate-notes \
+              --notes "Download the installer for your platform. Mote will use this release for future automatic updates."
+          fi
+
   release-macos:
     name: macOS ${{ matrix.arch }}
+    needs: prepare-release
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -56,6 +73,7 @@ jobs:
 
   release-windows:
     name: Windows x64
+    needs: prepare-release
     runs-on: windows-latest
 
     steps:
