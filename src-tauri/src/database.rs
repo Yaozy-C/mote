@@ -42,7 +42,14 @@ impl Database {
                 created_at  INTEGER NOT NULL,
                 pinned      INTEGER NOT NULL DEFAULT 0,
                 deleted_at  INTEGER,
-                content_hash TEXT NOT NULL UNIQUE
+                content_hash TEXT NOT NULL UNIQUE,
+                source_app_id TEXT,
+                source_app_name TEXT,
+                ocr_text TEXT,
+                ocr_status TEXT,
+                ocr_engine TEXT,
+                ocr_confidence REAL,
+                ocr_has_formula INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE INDEX IF NOT EXISTS idx_clipboard_items_created_at
@@ -93,6 +100,17 @@ impl Database {
             "ALTER TABLE clipboard_items ADD COLUMN deleted_at INTEGER",
             [],
         );
+        for migration in [
+            "ALTER TABLE clipboard_items ADD COLUMN source_app_id TEXT",
+            "ALTER TABLE clipboard_items ADD COLUMN source_app_name TEXT",
+            "ALTER TABLE clipboard_items ADD COLUMN ocr_text TEXT",
+            "ALTER TABLE clipboard_items ADD COLUMN ocr_status TEXT",
+            "ALTER TABLE clipboard_items ADD COLUMN ocr_engine TEXT",
+            "ALTER TABLE clipboard_items ADD COLUMN ocr_confidence REAL",
+            "ALTER TABLE clipboard_items ADD COLUMN ocr_has_formula INTEGER NOT NULL DEFAULT 0",
+        ] {
+            let _ = connection.execute(migration, []);
+        }
         // Early color-picker builds stored sampled HEX values with a picker-specific hash,
         // then the clipboard watcher stored the same value again. Consolidate those rows.
         connection.execute_batch(
@@ -133,8 +151,8 @@ impl Database {
         let transaction = connection.transaction()?;
         transaction.execute(
             r#"
-            INSERT INTO clipboard_items (kind, title, content, detail, byte_size, created_at, content_hash)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            INSERT INTO clipboard_items (kind, title, content, detail, byte_size, created_at, content_hash, source_app_id, source_app_name, ocr_status)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, CASE WHEN ?10 = 1 THEN 'pending' ELSE NULL END)
             ON CONFLICT(content_hash) DO UPDATE SET
                 kind = excluded.kind,
                 title = excluded.title,
@@ -142,6 +160,9 @@ impl Database {
                 detail = excluded.detail,
                 byte_size = excluded.byte_size,
                 created_at = excluded.created_at,
+                source_app_id = COALESCE(excluded.source_app_id, clipboard_items.source_app_id),
+                source_app_name = COALESCE(excluded.source_app_name, clipboard_items.source_app_name),
+                ocr_status = CASE WHEN excluded.ocr_status IS NOT NULL AND clipboard_items.ocr_text IS NULL THEN 'pending' ELSE clipboard_items.ocr_status END,
                 deleted_at = NULL
             "#,
             params![
@@ -151,7 +172,13 @@ impl Database {
                 snapshot.detail,
                 snapshot.byte_size,
                 now,
-                snapshot.content_hash
+                snapshot.content_hash,
+                snapshot.source_app_id,
+                snapshot.source_app_name,
+                snapshot
+                    .representations
+                    .iter()
+                    .any(|value| value.format == "image") as i64
             ],
         )?;
         let item_id: i64 = transaction.query_row(
@@ -171,7 +198,7 @@ impl Database {
         }
         transaction.commit()?;
         let mut item = connection.query_row(
-            "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE id = ?1",
+            "SELECT id, kind, title, content, detail, byte_size, created_at, pinned, source_app_id, source_app_name, ocr_text, ocr_status, ocr_engine, ocr_confidence, ocr_has_formula FROM clipboard_items WHERE id = ?1",
             params![item_id],
             map_item,
         )?;
@@ -189,7 +216,7 @@ impl Database {
 
         if normalized.is_empty() {
             let mut statement = connection.prepare(
-                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC LIMIT ?1",
+                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned, source_app_id, source_app_name, ocr_text, ocr_status, ocr_engine, ocr_confidence, ocr_has_formula FROM clipboard_items WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC LIMIT ?1",
             )?;
             let rows = statement.query_map(params![limit], map_item)?;
             for row in rows {
@@ -198,7 +225,7 @@ impl Database {
         } else {
             let pattern = format!("%{normalized}%");
             let mut statement = connection.prepare(
-                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE deleted_at IS NULL AND (title LIKE ?1 OR content LIKE ?1 OR detail LIKE ?1 OR EXISTS (SELECT 1 FROM clipboard_representations representation WHERE representation.item_id = clipboard_items.id AND representation.content LIKE ?1)) ORDER BY pinned DESC, created_at DESC LIMIT ?2",
+                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned, source_app_id, source_app_name, ocr_text, ocr_status, ocr_engine, ocr_confidence, ocr_has_formula FROM clipboard_items WHERE deleted_at IS NULL AND (title LIKE ?1 OR content LIKE ?1 OR detail LIKE ?1 OR source_app_name LIKE ?1 OR ocr_text LIKE ?1 OR EXISTS (SELECT 1 FROM clipboard_representations representation WHERE representation.item_id = clipboard_items.id AND representation.content LIKE ?1)) ORDER BY pinned DESC, created_at DESC LIMIT ?2",
             )?;
             let rows = statement.query_map(params![pattern, limit], map_item)?;
             for row in rows {
@@ -213,7 +240,7 @@ impl Database {
         let connection = self.lock()?;
         let mut item = connection
             .query_row(
-                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE id = ?1 AND deleted_at IS NULL",
+                "SELECT id, kind, title, content, detail, byte_size, created_at, pinned, source_app_id, source_app_name, ocr_text, ocr_status, ocr_engine, ocr_confidence, ocr_has_formula FROM clipboard_items WHERE id = ?1 AND deleted_at IS NULL",
                 params![id],
                 map_item,
             )
@@ -233,7 +260,7 @@ impl Database {
             return Err(AppError::NotFound);
         }
         let mut item = connection.query_row(
-            "SELECT id, kind, title, content, detail, byte_size, created_at, pinned FROM clipboard_items WHERE id = ?1",
+            "SELECT id, kind, title, content, detail, byte_size, created_at, pinned, source_app_id, source_app_name, ocr_text, ocr_status, ocr_engine, ocr_confidence, ocr_has_formula FROM clipboard_items WHERE id = ?1",
             params![id],
             map_item,
         )?;
@@ -340,6 +367,42 @@ impl Database {
         Ok(())
     }
 
+    pub fn update_ocr(
+        &self,
+        id: i64,
+        text: Option<&str>,
+        status: &str,
+        confidence: Option<f64>,
+        has_formula: bool,
+    ) -> AppResult<()> {
+        let connection = self.lock()?;
+        connection.execute(
+            "UPDATE clipboard_items SET ocr_text = ?2, ocr_status = ?3, ocr_engine = 'PP-OCRv5 Mobile FP16', ocr_confidence = ?4, ocr_has_formula = ?5 WHERE id = ?1",
+            params![id, text, status, confidence, has_formula as i64],
+        )?;
+        Ok(())
+    }
+
+    pub fn pending_ocr_images(&self, limit: u32) -> AppResult<Vec<(i64, Vec<String>)>> {
+        let connection = self.lock()?;
+        let mut statement = connection.prepare(
+            "SELECT item.id, representation.content FROM clipboard_items item JOIN clipboard_representations representation ON representation.item_id = item.id AND representation.format = 'image' WHERE item.deleted_at IS NULL AND (item.ocr_status IS NULL OR item.ocr_status IN ('pending', 'failed')) ORDER BY item.created_at DESC, representation.item_index ASC, representation.ordinal ASC",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let mut grouped = Vec::<(i64, Vec<String>)>::new();
+        for row in rows {
+            let (id, path) = row?;
+            if let Some((_, paths)) = grouped.iter_mut().find(|(item_id, _)| *item_id == id) {
+                paths.push(path);
+            } else if grouped.len() < limit as usize {
+                grouped.push((id, vec![path]));
+            }
+        }
+        Ok(grouped)
+    }
+
     fn lock(&self) -> AppResult<std::sync::MutexGuard<'_, Connection>> {
         self.connection
             .lock()
@@ -357,6 +420,13 @@ fn map_item(row: &Row<'_>) -> rusqlite::Result<ClipboardItem> {
         byte_size: row.get(5)?,
         created_at: row.get(6)?,
         pinned: row.get::<_, i64>(7)? != 0,
+        source_app_id: row.get(8)?,
+        source_app_name: row.get(9)?,
+        ocr_text: row.get(10)?,
+        ocr_status: row.get(11)?,
+        ocr_engine: row.get(12)?,
+        ocr_confidence: row.get(13)?,
+        ocr_has_formula: row.get::<_, i64>(14)? != 0,
         missing_files: false,
         formats: Vec::new(),
         representations: Vec::new(),
@@ -474,6 +544,8 @@ mod tests {
             detail: "Text".into(),
             byte_size: None,
             content_hash: value.into(),
+            source_app_id: None,
+            source_app_name: None,
             representations: vec![ClipboardRepresentation {
                 item_index: 0,
                 format: "text".into(),
@@ -517,6 +589,8 @@ mod tests {
             detail: "2 items · Text + Image".into(),
             byte_size: Some("2 KB".into()),
             content_hash: "compound-hash".into(),
+            source_app_id: None,
+            source_app_name: None,
             representations: vec![
                 ClipboardRepresentation {
                     item_index: 0,

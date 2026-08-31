@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GearSix, MagnifyingGlass, Question, X } from "@phosphor-icons/react";
-import { IconCheck, IconClipboard, IconColorPicker, IconCopy, IconPinned, IconTrash } from "@tabler/icons-react";
+import { IconCheck, IconClipboard, IconClipboardText, IconColorPicker, IconCopy, IconPinned, IconStack2, IconTrash } from "@tabler/icons-react";
 import { DetailPreview } from "./components/DetailPreview.jsx";
 import { BatchPreview } from "./components/BatchPreview.jsx";
 import { ClearHistoryDialog } from "./components/ClearHistoryDialog.jsx";
@@ -61,6 +61,21 @@ export function App() {
     window.setTimeout(() => setActionDone(null), 1500);
     });
   };
+
+  const handlePlainText = () => runAction(async () => {
+    if (history.settings.directPaste) await history.pasteItemPlainText();
+    else await history.copyItemPlainText();
+    setActionDone({ type: history.settings.directPaste ? "pasted" : "copied" });
+    window.setTimeout(() => setActionDone(null), 1500);
+  });
+
+  const handleMergedPaste = () => runAction(async () => {
+    const count = history.batchSelectedItems.length;
+    if (!count) return;
+    await history.pasteBatchMerged();
+    setActionDone({ type: "pasted", count });
+    window.setTimeout(() => setActionDone(null), 1500);
+  });
 
   const handlePickColor = () => runAction(async () => {
     setSettingsOpen(false);
@@ -292,10 +307,12 @@ export function App() {
             </div>
             {history.batchMode ? <footer className="preview-actions batch-actions">
               <button className="primary-action" disabled={!history.batchSelectedItems.length} onClick={handlePaste}><IconClipboard size={18} stroke={1.75} aria-hidden="true" /> {t("multi.pasteCount", { count: history.batchSelectedItems.length || "" })}<kbd>↵</kbd></button>
+              <button disabled={!history.batchSelectedItems.length} onClick={handleMergedPaste} title={t("multi.mergeHint")}><IconStack2 size={18} stroke={1.75} aria-hidden="true" />{t("multi.mergeText")}</button>
               <button onClick={history.selectAllBatch}>{t("action.selectAll")}</button>
               <button onClick={history.cancelBatchSelection}>{t("action.cancel")}</button>
             </footer> : history.selected && <footer className="preview-actions">
               <button className={`primary-action ${actionDone ? "copied" : ""}`} onClick={history.settings.directPaste ? handlePaste : handleCopy}>{actionDone ? <IconCheck size={18} stroke={2} aria-hidden="true" /> : history.settings.directPaste ? <IconClipboard size={18} stroke={1.75} aria-hidden="true" /> : <IconCopy size={18} stroke={1.75} aria-hidden="true" />} {actionDone ? actionDone.type === "copied" ? t("action.copied") : actionDone.count > 1 ? t("action.pastedCount", { count: actionDone.count }) : t("action.pasted") : history.settings.directPaste ? t("action.paste") : t("action.copy")}<kbd>{history.settings.directPaste ? (isWindowsPlatform() ? "Enter" : "↵") : `${primaryModifierLabel()} ${isWindowsPlatform() ? "Enter" : "↵"}`}</kbd></button>
+              <button disabled={history.selected.kind === "image" && !history.selected.ocrText} onClick={handlePlainText} title={history.selected.kind === "image" ? t("ocr.derived") : t("action.plainTextHint")}><IconClipboardText size={18} stroke={1.75} aria-hidden="true" />{history.selected.kind === "image" ? (history.settings.directPaste ? t("ocr.pasteText") : t("ocr.copyText")) : history.settings.directPaste ? t("action.pastePlainText") : t("action.copyPlainText")}</button>
               <button onClick={() => runAction(history.togglePin)} className={history.selected.pinned ? "active" : ""}><IconPinned size={18} stroke={1.75} aria-hidden="true" />{history.selected.pinned ? t("action.pinned") : t("action.pin")}</button>
               <button className="delete-action" onClick={handleDelete}><IconTrash size={18} stroke={1.75} aria-hidden="true" /> {t("action.delete")}</button>
             </footer>}

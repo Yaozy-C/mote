@@ -34,6 +34,16 @@ pub fn copy_clipboard_item(app: AppHandle, state: State<'_, AppState>, id: i64) 
     write_item(&app, &state, id)
 }
 
+#[tauri::command]
+pub fn copy_clipboard_item_plain_text(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> AppResult<()> {
+    let item = state.database.get_item(id)?;
+    write_plain_text(&app, plain_text_for_item(&item)?)
+}
+
 fn write_item(app: &AppHandle, state: &AppState, id: i64) -> AppResult<()> {
     let item = state.database.get_item(id)?;
     write_clipboard_item(app, item)
@@ -89,6 +99,18 @@ pub fn paste_clipboard_item(app: AppHandle, state: State<'_, AppState>, id: i64)
 }
 
 #[tauri::command]
+pub fn paste_clipboard_item_plain_text(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> AppResult<()> {
+    let item = state.database.get_item(id)?;
+    let value = plain_text_for_item(&item)?;
+    write_plain_text(&app, value)?;
+    paste_current_clipboard(&app, &state)
+}
+
+#[tauri::command]
 pub fn paste_clipboard_items(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -126,6 +148,115 @@ pub fn paste_clipboard_items(
         if index + 1 < item_count {
             thread::sleep(Duration::from_millis(70));
         }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn paste_clipboard_items_merged(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    ids: Vec<i64>,
+    separator: Option<String>,
+) -> AppResult<()> {
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let mut items = ids
+        .into_iter()
+        .map(|id| state.database.get_item(id))
+        .collect::<AppResult<Vec<_>>>()?;
+    items.sort_by_key(|item| item.created_at);
+    let values = items
+        .iter()
+        .map(plain_text_for_item)
+        .collect::<AppResult<Vec<_>>>()?;
+    let value = values
+        .into_iter()
+        .filter(|value| !value.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join(separator.as_deref().unwrap_or("\n"));
+    if value.is_empty() {
+        return Err(AppError::Clipboard(
+            "The selected records do not have text that can be merged yet.".into(),
+        ));
+    }
+    write_plain_text(&app, value)?;
+    paste_current_clipboard(&app, &state)
+}
+
+fn write_plain_text(app: &AppHandle, value: String) -> AppResult<()> {
+    app.clipboard()
+        .write_text(value)
+        .map_err(|error| AppError::Clipboard(error.to_string()))
+}
+
+fn plain_text_for_item(item: &ClipboardItem) -> AppResult<String> {
+    if item.kind == "image" {
+        return item
+            .ocr_text
+            .clone()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| {
+                AppError::Clipboard("Recognized text is not available for this image yet.".into())
+            });
+    }
+    if let Some(value) = item
+        .representations
+        .iter()
+        .find(|value| matches!(value.format.as_str(), "text" | "url"))
+        .map(|value| value.content.clone())
+    {
+        return Ok(value);
+    }
+    if item.kind == "files" {
+        if let Ok(paths) = serde_json::from_str::<Vec<String>>(&item.content) {
+            return Ok(paths.join("\n"));
+        }
+    }
+    if !item.content.trim().is_empty() && !Path::new(&item.content).is_absolute() {
+        return Ok(strip_html(&item.content));
+    }
+    item.ocr_text
+        .clone()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| AppError::Clipboard("This record has no plain-text value.".into()))
+}
+
+fn strip_html(value: &str) -> String {
+    let mut output = String::with_capacity(value.len());
+    let mut inside_tag = false;
+    for character in value.chars() {
+        match character {
+            '<' => inside_tag = true,
+            '>' => inside_tag = false,
+            _ if !inside_tag => output.push(character),
+            _ => {}
+        }
+    }
+    output
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+}
+
+fn paste_current_clipboard(app: &AppHandle, state: &AppState) -> AppResult<()> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+    let bundle = state
+        .last_active_app
+        .lock()
+        .ok()
+        .and_then(|value| value.clone());
+    thread::sleep(Duration::from_millis(80));
+    if let Err(error) = platform::paste_into(bundle.as_deref()) {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        return Err(AppError::Clipboard(error));
     }
     Ok(())
 }
@@ -229,6 +360,8 @@ pub fn start_color_picker(app: AppHandle) -> AppResult<()> {
                     detail: "Picked color".into(),
                     byte_size: None,
                     content_hash: crate::watcher::snapshot_hash(&representations),
+                    source_app_id: None,
+                    source_app_name: None,
                     representations,
                 };
                 let state = callback_app.state::<AppState>();

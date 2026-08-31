@@ -43,7 +43,7 @@ export const moteApi = {
     }
     const normalized = query.trim().toLowerCase();
     return loadDemoItems()
-      .filter((item) => !normalized || `${item.title} ${item.content} ${item.detail}`.toLowerCase().includes(normalized))
+      .filter((item) => !normalized || `${item.title} ${item.content} ${item.detail} ${item.sourceAppName ?? ""} ${item.ocrText ?? ""}`.toLowerCase().includes(normalized))
       .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt - a.createdAt);
   },
 
@@ -54,6 +54,11 @@ export const moteApi = {
     await navigator.clipboard.writeText(item.kind === "image" ? item.title : item.content);
   },
 
+  async copyItemPlainText(item) {
+    if (isDesktopRuntime()) return invoke("copy_clipboard_item_plain_text", { id: item.id });
+    await navigator.clipboard.writeText(plainTextValue(item));
+  },
+
   async pasteItem(item) {
     if (isDesktopRuntime()) {
       return invoke("paste_clipboard_item", { id: item.id });
@@ -61,11 +66,23 @@ export const moteApi = {
     await navigator.clipboard.writeText(item.kind === "image" ? item.title : item.content);
   },
 
+  async pasteItemPlainText(item) {
+    if (isDesktopRuntime()) return invoke("paste_clipboard_item_plain_text", { id: item.id });
+    await navigator.clipboard.writeText(plainTextValue(item));
+  },
+
   async pasteItems(items) {
     if (isDesktopRuntime()) {
       return invoke("paste_clipboard_items", { ids: items.map((item) => item.id) });
     }
     await navigator.clipboard.writeText(items.map((item) => item.kind === "image" ? item.title : item.content).join("\n"));
+  },
+
+  async pasteItemsMerged(items) {
+    if (isDesktopRuntime()) {
+      return invoke("paste_clipboard_items_merged", { ids: items.map((item) => item.id), separator: "\n" });
+    }
+    await navigator.clipboard.writeText(items.map(plainTextValue).join("\n"));
   },
 
   async togglePin(id) {
@@ -215,3 +232,12 @@ export const moteApi = {
     return listen("mote://color-picker-error", (event) => callback(event.payload));
   },
 };
+
+function plainTextValue(item) {
+  if (item.kind === "image") {
+    if (!item.ocrText?.trim()) throw new Error("Recognized text is not available for this image yet.");
+    return item.ocrText;
+  }
+  const representation = item.representations?.find((value) => ["text", "url"].includes(value.format));
+  return representation?.content ?? item.content;
+}

@@ -131,6 +131,7 @@ button { color: inherit; }
 .preview-copy { padding: 20px 26px 28px; }
 .preview-copy h2, .content-preview h2 { margin: 0 0 6px; font-size: 22px; line-height: 1.2; letter-spacing: -.02em; }
 .preview-copy p { margin: 0 0 5px; color: var(--secondary); font-size: 13px; }
+.preview-copy .source-app, .compound-preview > header .source-app { color: var(--tertiary); font-size: 11px; }
 .content-preview { min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: clamp(32px, 6vw, 74px); }
 .content-preview .preview-type { color: var(--accent); font-size: 11px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
 .content-preview h2 { margin-top: 12px; font-size: 25px; }
@@ -185,6 +186,22 @@ button { color: inherit; }
 .image-palette.compact button { padding: 3px; }
 .image-palette.compact button > span { width: 23px; height: 23px; }
 
+.ocr-panel { margin-top: 18px; overflow: hidden; border: 1px solid rgba(60,60,67,.14); border-radius: 9px; background: rgba(246,246,248,.72); }
+.compound-preview > .ocr-panel { margin-top: 22px; }
+.ocr-panel summary { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 13px; cursor: pointer; list-style: none; user-select: none; }
+.ocr-panel summary::-webkit-details-marker { display: none; }
+.ocr-panel summary > span { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 620; }
+.ocr-panel summary > small { color: var(--tertiary); font-size: 10px; font-weight: 500; }
+.ocr-panel summary::after { content: "›"; flex: none; color: var(--tertiary); font-size: 18px; transform: rotate(90deg); transition: transform .16s var(--ease-mac); }
+.ocr-panel[open] summary::after { transform: rotate(-90deg); }
+.ocr-content { padding: 0 13px 13px; border-top: 1px solid rgba(60,60,67,.1); }
+.ocr-content pre { max-height: 220px; overflow: auto; margin: 12px 0 0; padding: 11px; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 7px; color: #3a3a3c; background: rgba(255,255,255,.72); font: 12px/1.58 ui-monospace, SFMono-Regular, Menlo, monospace; user-select: text; }
+.ocr-warning { display: flex; align-items: flex-start; gap: 6px; margin: 9px 0 0 !important; color: #9a5a00 !important; font-size: 10px !important; line-height: 1.4; }
+.ocr-warning svg { flex: none; margin-top: 1px; }
+.ocr-engine { display: block; margin-top: 9px; color: var(--tertiary); font-size: 9px; }
+.ocr-loading, .ocr-empty { min-height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 12px; color: var(--secondary); font-size: 11px; }
+.ocr-loading svg { color: var(--accent); animation: update-spin 1.8s linear infinite; }
+
 .preview-actions { flex: 0 0 64px; min-height: 64px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 18px; border-top: 1px solid var(--separator); background: rgba(250,250,252,.86); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); }
 .preview-actions button { height: 34px; min-width: 92px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; border: 1px solid rgba(60,60,67,.16); border-radius: 7px; background: rgba(255,255,255,.7); box-shadow: 0 1px 2px rgba(0,0,0,.04); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .13s ease, border-color .13s ease, transform .11s ease, box-shadow .16s ease; }
 .preview-actions button:hover { background: white; }
@@ -198,6 +215,12 @@ button { color: inherit; }
 .preview-actions .active { color: var(--accent); border-color: rgba(10,132,255,.24); background: rgba(10,132,255,.08); }
 .preview-actions .delete-action { color: #ff3b30; }
 .batch-actions { justify-content: flex-end; }
+
+@media (max-width: 1050px) {
+  .preview-actions { gap: 6px; padding-inline: 12px; }
+  .preview-actions button { min-width: auto; padding-inline: 10px; font-size: 12px; }
+  .preview-actions .primary-action { min-width: 112px; }
+}
 
 .batch-preview { min-height: 100%; height: 100%; display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 18px; padding: 28px 32px 18px; }
 .batch-preview-header { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--separator); }

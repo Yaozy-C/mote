@@ -3,6 +3,7 @@ mod commands;
 mod database;
 mod error;
 mod models;
+mod ocr;
 mod platform;
 mod state;
 mod watcher;
@@ -140,7 +141,19 @@ pub fn run() {
                 database: database.clone(),
                 last_active_app: Arc::new(Mutex::new(None)),
             });
-            watcher::spawn(app.handle().clone(), database, data_dir.join("images"));
+            let bundled_models = app.path().resource_dir()?.join("models");
+            let model_dir = if bundled_models.exists() {
+                bundled_models
+            } else {
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("models")
+            };
+            let ocr_queue = ocr::spawn(app.handle().clone(), database.clone(), model_dir);
+            watcher::spawn(
+                app.handle().clone(),
+                database,
+                data_dir.join("images"),
+                ocr_queue,
+            );
 
             let settings = app
                 .state::<AppState>()
@@ -165,13 +178,8 @@ pub fn run() {
                 if let Some(MenuItemKind::Submenu(mote_menu)) = app_menu.items()?.into_iter().next()
                 {
                     let _ = mote_menu.remove_at(0)?;
-                    let about = MenuItem::with_id(
-                        app,
-                        "about-mote",
-                        "About Mote",
-                        true,
-                        None::<&str>,
-                    )?;
+                    let about =
+                        MenuItem::with_id(app, "about-mote", "About Mote", true, None::<&str>)?;
                     mote_menu.insert(&about, 0)?;
                 }
                 app.set_menu(app_menu)?;
@@ -227,8 +235,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::list_clipboard_items,
             commands::copy_clipboard_item,
+            commands::copy_clipboard_item_plain_text,
             commands::paste_clipboard_item,
+            commands::paste_clipboard_item_plain_text,
             commands::paste_clipboard_items,
+            commands::paste_clipboard_items_merged,
             commands::toggle_clipboard_pin,
             commands::delete_clipboard_item,
             commands::clear_unpinned_items,

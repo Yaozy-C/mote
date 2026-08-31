@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { File } from "@phosphor-icons/react";
-import { IconAlertTriangle, IconCopy, IconExternalLink, IconFolderOpen } from "@tabler/icons-react";
+import { IconAlertTriangle, IconClipboardText, IconCopy, IconExternalLink, IconFolderOpen, IconSparkles } from "@tabler/icons-react";
 import { imageSource, moteApi } from "../services/moteApi.js";
 import { localizedItemDetail } from "../i18n.js";
 
@@ -24,12 +24,13 @@ export function DetailPreview({ item, t, locale, onError }) {
   const representation = preferredRepresentation(visibleRepresentations) ?? representations[0];
   if (displayRepresentations.length > 1 || groups.length > 1) {
     return <div className="compound-preview unified-preview">
-      <header><h2>{item.title}</h2><p>{t("detail.copied", { time: formatCopiedAt(item.createdAt, t, locale) })}</p></header>
+      <header><h2>{item.title}</h2><p>{t("detail.copied", { time: formatCopiedAt(item.createdAt, t, locale) })}</p><SourceMeta item={item} t={t} /></header>
       <div className="compound-items">{displayRepresentations.map((visible, index) => {
         return <section className="compound-item" key={`${visible.itemIndex ?? 0}-${visible.format}-${index}`}>
           <RepresentationBlock item={item} representation={visible} t={t} onError={onError} />
         </section>;
       })}</div>
+      <OcrPanel item={item} t={t} onError={onError} />
     </div>;
   }
 
@@ -80,7 +81,7 @@ function sanitizeClipboardHtml(html) {
 function RepresentationPreview({ item, representation, t, locale, onError }) {
   if (representation.format === "image") {
     const src = imageSource(representation.content);
-    return <><img className="hero-image" src={src} alt={item.title} /><div className="preview-copy"><h2>{item.title}</h2><p>{localizedItemDetail(item, t)}{representation.byteSize ? ` · ${representation.byteSize}` : ""}</p><p>{t("detail.copied", { time: formatCopiedAt(item.createdAt, t, locale) })}</p><ImagePalette src={src} t={t} onError={onError} /></div></>;
+    return <><img className="hero-image" src={src} alt={item.title} /><div className="preview-copy"><h2>{item.title}</h2><p>{localizedItemDetail(item, t)}{representation.byteSize ? ` · ${representation.byteSize}` : ""}</p><p>{t("detail.copied", { time: formatCopiedAt(item.createdAt, t, locale) })}</p><SourceMeta item={item} t={t} /><ImagePalette src={src} t={t} onError={onError} /><OcrPanel item={item} t={t} onError={onError} /></div></>;
   }
   if (representation.format === "files") {
     const paths = filePaths(representation.content);
@@ -96,6 +97,34 @@ function RepresentationPreview({ item, representation, t, locale, onError }) {
   if (representation.format === "url" || item.kind === "url") return <div className="content-preview"><span className="preview-type">{t("type.url")}</span><h2>{item.title}</h2><pre>{representation.content}</pre><div className="context-actions"><ContextButton icon={IconExternalLink} label={t("action.openLink")} onClick={() => moteApi.openExternal(representation.content)} onError={onError} /></div></div>;
   const isCode = item.kind === "code";
   return <div className={`content-preview ${isCode ? "code-preview" : ""}`}><span className="preview-type">{localizedItemDetail(item, t)}</span><h2>{item.title}</h2><pre>{representation.content}</pre></div>;
+}
+
+function SourceMeta({ item, t }) {
+  if (!item.sourceAppName) return null;
+  return <p className="source-app">{t("detail.sourceApp", { app: item.sourceAppName })}</p>;
+}
+
+function OcrPanel({ item, t, onError }) {
+  const status = item.ocrStatus;
+  if (!status || !item.representations?.some((value) => value.format === "image")) return null;
+  if (["pending", "processing"].includes(status)) {
+    return <section className="ocr-panel ocr-loading"><IconSparkles size={16} stroke={1.75} /><span>{t(status === "processing" ? "ocr.processing" : "ocr.pending")}</span></section>;
+  }
+  if (status === "empty") return <section className="ocr-panel ocr-empty"><IconSparkles size={16} stroke={1.75} /><span>{t("ocr.empty")}</span></section>;
+  if (status !== "ready" || !item.ocrText) return null;
+  const confidence = Number.isFinite(item.ocrConfidence) ? Math.round(item.ocrConfidence * 100) : null;
+  return <details className="ocr-panel">
+    <summary><span><IconSparkles size={16} stroke={1.75} />{t("ocr.title")}</span><small>{t("ocr.derived")}{confidence ? ` · ${confidence}%` : ""}</small></summary>
+    <div className="ocr-content">
+      <pre>{item.ocrText}</pre>
+      {item.ocrHasFormula && <p className="ocr-warning"><IconAlertTriangle size={15} stroke={1.75} />{t("ocr.formulaWarning")}</p>}
+      <div className="context-actions">
+        <ContextButton icon={IconCopy} label={t("ocr.copyText")} onClick={() => moteApi.copyItemPlainText(item)} onError={onError} />
+        <ContextButton icon={IconClipboardText} label={t("ocr.pasteText")} onClick={() => moteApi.pasteItemPlainText(item)} onError={onError} />
+      </div>
+      <small className="ocr-engine">{item.ocrEngine}</small>
+    </div>
+  </details>;
 }
 
 function FilesBlock({ paths, t, onError }) {

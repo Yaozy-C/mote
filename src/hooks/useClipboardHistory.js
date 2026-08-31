@@ -48,9 +48,19 @@ export function useClipboardHistory() {
     await moteApi.copyItem(selected);
   }, [selected]);
 
+  const copyItemPlainText = useCallback(async () => {
+    if (!selected) return;
+    await moteApi.copyItemPlainText(selected);
+  }, [selected]);
+
   const pasteItem = useCallback(async () => {
     if (!selected) return;
     await moteApi.pasteItem(selected);
+  }, [selected]);
+
+  const pasteItemPlainText = useCallback(async () => {
+    if (!selected) return;
+    await moteApi.pasteItemPlainText(selected);
   }, [selected]);
 
   const batchSelectedItems = useMemo(
@@ -79,6 +89,12 @@ export function useClipboardHistory() {
   const pasteBatch = useCallback(async () => {
     if (!batchSelectedItems.length) return;
     await moteApi.pasteItems(batchSelectedItems);
+    cancelBatchSelection();
+  }, [batchSelectedItems, cancelBatchSelection]);
+
+  const pasteBatchMerged = useCallback(async () => {
+    if (!batchSelectedItems.length) return;
+    await moteApi.pasteItemsMerged(batchSelectedItems);
     cancelBatchSelection();
   }, [batchSelectedItems, cancelBatchSelection]);
 
@@ -137,12 +153,15 @@ export function useClipboardHistory() {
     toggleBatchSelection,
     selectAllBatch,
     pasteBatch,
+    pasteBatchMerged,
     query,
     setQuery,
     settings,
     saveSettings,
     copyItem,
+    copyItemPlainText,
     pasteItem,
+    pasteItemPlainText,
     selectOffset,
     togglePin,
     deleteItem,

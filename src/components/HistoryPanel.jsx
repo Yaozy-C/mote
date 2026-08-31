@@ -20,7 +20,7 @@ export function HistoryPanel({ items, selectedId, onSelect, loading, error, batc
           <button style={{ "--item-order": itemIndex }} data-item-id={item.id} aria-pressed={batchMode ? batchSelectedIds.includes(item.id) : undefined} className={`history-item ${item.kind === "image" ? "image-item" : ""} ${batchMode ? "batch-mode" : ""} ${batchMode && selectedId === item.id ? "batch-current" : ""} ${batchMode ? batchSelectedIds.includes(item.id) ? "batch-selected" : "" : selectedId === item.id ? "selected" : ""}`} key={item.id} onClick={() => batchMode ? onToggleBatch(item.id) : onSelect(item.id)}>
             {batchMode && <span className="batch-check">{batchSelectedIds.includes(item.id) && queueOrder.indexOf(item.id) + 1}</span>}
             <TypeBadge item={item} />
-            <span className="item-copy"><strong>{item.title}</strong><span className={item.missingFiles ? "missing-detail" : ""}>{item.missingFiles && <WarningCircle size={13} weight="fill" />}{item.missingFiles ? t("detail.fileMissing") : localizedItemDetail(item, t)}</span>{itemGroup(item) === "today" && <span>{itemTime(item, t, locale)}</span>}</span>
+            <span className="item-copy"><strong>{item.title}</strong><span className={item.missingFiles ? "missing-detail" : ""}>{item.missingFiles && <WarningCircle size={13} weight="fill" />}{item.missingFiles ? t("detail.fileMissing") : localizedItemDetail(item, t)}{item.sourceAppName ? ` · ${item.sourceAppName}` : ""}</span>{itemGroup(item) === "today" && <span>{itemTime(item, t, locale)}</span>}</span>
             {item.pinned && <PushPin className="pin-indicator" size={14} weight="fill" />}
             {itemGroup(item) === "earlier" && <time>{itemTime(item, t, locale)}</time>}
           </button>
