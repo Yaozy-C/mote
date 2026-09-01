@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
@@ -43,12 +42,50 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-const palette = [
-  new THREE.Color("#ff8c76"),
-  new THREE.Color("#ffc88f"),
-  new THREE.Color("#fff0d7"),
-  new THREE.Color("#e8c9bd"),
-];
+const palette = [[1, 0.549, 0.463], [1, 0.784, 0.561], [1, 0.941, 0.843], [0.91, 0.788, 0.741]];
+
+function compileShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const error = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw new Error(error || "Particle shader compilation failed.");
+  }
+  return shader;
+}
+
+function createProgram(gl) {
+  const program = gl.createProgram();
+  const vertex = compileShader(gl, gl.VERTEX_SHADER, vertexShader);
+  const fragment = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  gl.deleteShader(vertex);
+  gl.deleteShader(fragment);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const error = gl.getProgramInfoLog(program);
+    gl.deleteProgram(program);
+    throw new Error(error || "Particle shader linking failed.");
+  }
+  return program;
+}
+
+function bindAttribute(gl, program, name, values, size, buffers) {
+  const buffer = gl.createBuffer();
+  buffers.push(buffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, values, gl.STATIC_DRAW);
+  const location = gl.getAttribLocation(program, name);
+  gl.enableVertexAttribArray(location);
+  gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);
+}
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
 
 export function ParticleField({ disabled = false }) {
   const host = useRef(null);
@@ -57,22 +94,18 @@ export function ParticleField({ disabled = false }) {
     const container = host.current;
     if (disabled || !container || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    let renderer;
+    const canvas = document.createElement("canvas");
+    let gl;
+    let program;
     try {
-      renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: false,
-        depth: false,
-        stencil: false,
-        powerPreference: "high-performance",
-      });
+      gl = canvas.getContext("webgl", { alpha: true, antialias: false, depth: false, stencil: false, powerPreference: "high-performance" });
+      if (!gl) throw new Error("WebGL is unavailable.");
+      program = createProgram(gl);
     } catch {
       container.dataset.fallback = "true";
       return;
     }
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.Camera();
     const count = Math.min(150, Math.max(82, Math.round(window.innerWidth / 9)));
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
@@ -85,54 +118,43 @@ export function ParticleField({ disabled = false }) {
     for (let index = 0; index < count; index += 1) {
       const glow = index < Math.max(12, Math.round(count * 0.14));
       positions.set([
-        THREE.MathUtils.randFloatSpread(2.08),
-        THREE.MathUtils.randFloatSpread(2.2),
+        randomBetween(-1.04, 1.04),
+        randomBetween(-1.1, 1.1),
         0,
       ], index * 3);
-      palette[Math.floor(Math.random() * palette.length)].toArray(colors, index * 3);
-      sizes[index] = glow ? THREE.MathUtils.randFloat(8, 17) : THREE.MathUtils.randFloat(2.1, 5.4);
-      speeds[index] = THREE.MathUtils.randFloat(0.012, 0.04);
+      colors.set(palette[Math.floor(Math.random() * palette.length)], index * 3);
+      sizes[index] = glow ? randomBetween(8, 17) : randomBetween(2.1, 5.4);
+      speeds[index] = randomBetween(0.012, 0.04);
       phases[index] = Math.random() * Math.PI * 2;
-      drifts[index] = glow ? THREE.MathUtils.randFloat(0.025, 0.065) : THREE.MathUtils.randFloat(0.008, 0.034);
-      alphas[index] = glow ? THREE.MathUtils.randFloat(0.1, 0.22) : THREE.MathUtils.randFloat(0.24, 0.58);
+      drifts[index] = glow ? randomBetween(0.025, 0.065) : randomBetween(0.008, 0.034);
+      alphas[index] = glow ? randomBetween(0.1, 0.22) : randomBetween(0.24, 0.58);
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
-    geometry.setAttribute("aSpeed", new THREE.BufferAttribute(speeds, 1));
-    geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
-    geometry.setAttribute("aDrift", new THREE.BufferAttribute(drifts, 1));
-    geometry.setAttribute("aAlpha", new THREE.BufferAttribute(alphas, 1));
-
-    const uniforms = {
-      uTime: { value: 0 },
-      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-      uAspect: { value: 1 },
-    };
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader,
-      fragmentShader,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.NormalBlending,
-    });
-    const particles = new THREE.Points(geometry, material);
-    particles.frustumCulled = false;
-    scene.add(particles);
-
-    renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(uniforms.uPixelRatio.value);
-    container.appendChild(renderer.domElement);
+    gl.useProgram(program);
+    const buffers = [];
+    bindAttribute(gl, program, "position", positions, 3, buffers);
+    bindAttribute(gl, program, "aColor", colors, 3, buffers);
+    bindAttribute(gl, program, "aSize", sizes, 1, buffers);
+    bindAttribute(gl, program, "aSpeed", speeds, 1, buffers);
+    bindAttribute(gl, program, "aPhase", phases, 1, buffers);
+    bindAttribute(gl, program, "aDrift", drifts, 1, buffers);
+    bindAttribute(gl, program, "aAlpha", alphas, 1, buffers);
+    const uTime = gl.getUniformLocation(program, "uTime");
+    const uPixelRatio = gl.getUniformLocation(program, "uPixelRatio");
+    const uAspect = gl.getUniformLocation(program, "uAspect");
+    const pixelRatio = Math.min(window.devicePixelRatio, 2);
+    gl.uniform1f(uPixelRatio, pixelRatio);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    container.appendChild(canvas);
 
     const resize = () => {
       const { clientWidth, clientHeight } = container;
       if (!clientWidth || !clientHeight) return;
-      renderer.setSize(clientWidth, clientHeight, false);
-      uniforms.uAspect.value = clientWidth / clientHeight;
+      canvas.width = Math.round(clientWidth * pixelRatio);
+      canvas.height = Math.round(clientHeight * pixelRatio);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform1f(uAspect, clientWidth / clientHeight);
     };
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
@@ -140,24 +162,26 @@ export function ParticleField({ disabled = false }) {
 
     let animation = 0;
     let start = performance.now();
+    let elapsed = 0;
     const tick = (time) => {
       animation = requestAnimationFrame(tick);
       if (document.hidden) {
-        start = time - uniforms.uTime.value * 1000;
+        start = time - elapsed * 1000;
         return;
       }
-      uniforms.uTime.value = (time - start) / 1000;
-      renderer.render(scene, camera);
+      elapsed = (time - start) / 1000;
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform1f(uTime, elapsed);
+      gl.drawArrays(gl.POINTS, 0, count);
     };
     animation = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(animation);
       resizeObserver.disconnect();
-      geometry.dispose();
-      material.dispose();
-      renderer.dispose();
-      renderer.domElement.remove();
+      buffers.forEach((buffer) => gl.deleteBuffer(buffer));
+      gl.deleteProgram(program);
+      canvas.remove();
     };
   }, [disabled]);
 

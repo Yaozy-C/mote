@@ -12,9 +12,8 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:run": "npm run build:web && /Users/yaozhongyao/.cargo/bin/cargo run --release --features tauri/custom-protocol --manifest-path src-tauri/Cargo.toml",
-    "desktop:build": "tauri build --bundles app",
-    "desktop:bundle:dmg": "tauri build --bundles dmg",
-    "desktop:bundle:windows": "tauri build --bundles nsis"
+    "desktop:build": "tauri build --bundles app --config '{\"bundle\":{\"createUpdaterArtifacts\":false,\"macOS\":{\"signingIdentity\":null}}}'",
+    "desktop:bundle:dmg": "tauri build --bundles dmg --config '{\"bundle\":{\"createUpdaterArtifacts\":false,\"macOS\":{\"signingIdentity\":null}}}'"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -25,7 +24,6 @@
     "@vitejs/plugin-react": "5.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "three": "^0.185.1",
     "vite": "6.4.2"
   },
   "devDependencies": {

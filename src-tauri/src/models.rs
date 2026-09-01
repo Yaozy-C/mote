@@ -103,47 +103,22 @@ impl Default for AppSettings {
     }
 }
 
-#[cfg(target_os = "windows")]
-fn default_open_shortcut() -> &'static str {
-    "Control+Shift+Space"
-}
-#[cfg(not(target_os = "windows"))]
 fn default_open_shortcut() -> &'static str {
     "Alt+Space"
 }
 
-#[cfg(target_os = "windows")]
-fn default_batch_shortcut() -> &'static str {
-    "Control+Alt+Space"
-}
-#[cfg(not(target_os = "windows"))]
 fn default_batch_shortcut() -> &'static str {
     "Alt+Shift+Space"
 }
 
-#[cfg(target_os = "windows")]
-fn default_color_shortcut() -> &'static str {
-    "Control+Shift+KeyC"
-}
-#[cfg(not(target_os = "windows"))]
 fn default_color_shortcut() -> &'static str {
     "Alt+Shift+KeyC"
 }
 
-#[cfg(target_os = "windows")]
-fn default_screenshot_shortcut() -> &'static str {
-    "Control+Shift+KeyS"
-}
-#[cfg(not(target_os = "windows"))]
 fn default_screenshot_shortcut() -> &'static str {
     "Alt+Shift+KeyS"
 }
 
-#[cfg(target_os = "windows")]
-fn default_toggle_batch_shortcut() -> &'static str {
-    "Control+Shift+KeyM"
-}
-#[cfg(not(target_os = "windows"))]
 fn default_toggle_batch_shortcut() -> &'static str {
     "Meta+Shift+KeyM"
 }

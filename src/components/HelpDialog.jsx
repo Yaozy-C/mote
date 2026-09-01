@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { IconArrowBackUp, IconChevronLeft, IconChevronRight, IconClipboard, IconColorPicker, IconFile, IconPinned, IconSearch, IconSparkles, IconStack2, IconScreenshot, IconX } from "@tabler/icons-react";
-import { formatShortcut, isWindowsPlatform, primaryModifierLabel } from "../utils/shortcuts.js";
+import { formatShortcut, primaryModifierLabel } from "../utils/shortcuts.js";
 
 export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessibility, t, locale }) {
   const pages = useMemo(() => helpPages(settings, permissionStatus, onOpenAccessibility, t, locale), [settings, permissionStatus, onOpenAccessibility, t, locale]);
@@ -39,7 +39,7 @@ export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessib
 }
 
 function helpPages(settings, permissionStatus, onOpenAccessibility, t, locale) {
-  const primary = isWindowsPlatform() ? "Control" : "Meta";
+  const primary = "Meta";
   return [
     page("copy", IconClipboard, t("help.quickStart"), t("help.copyTitle"), t("help.copyBody"), formatShortcut(`${primary}+KeyC`, locale), <div className="example-clipping"><span>T</span><div><strong>{t("help.exampleText")}</strong><small>{t("help.exampleSaved")}</small></div></div>),
     page("find", IconSearch, t("help.quickStart"), t("help.findTitle"), t("help.findBody"), formatShortcut(settings.openShortcut, locale), <div className="example-search"><IconSearch size={17} /><span>{t("help.exampleSearch")}</span><kbd>{primaryModifierLabel()}K</kbd></div>),

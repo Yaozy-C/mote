@@ -1,5 +1,4 @@
 const now = Date.now();
-const windows = typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent || navigator.platform || "");
 
 export const demoItems = [
   { id: 1, kind: "image", title: "Flower photograph", content: "/assets/dahlia-preview.png", detail: "Text + HTML + Image", byteSize: "287 KB", createdAt: now - 60_000, pinned: false, sourceAppId: "com.apple.Safari", sourceAppName: "Safari", ocrText: "Orange dahlia photographed in warm evening light.\nExposure: 1/250 s · f/2.8\nE = mc²", ocrStatus: "ready", ocrEngine: "PP-OCRv5 Mobile FP16", ocrConfidence: 0.94, ocrHasFormula: true, formats: ["text", "html", "image"], representations: [
@@ -24,10 +23,10 @@ export const defaultSettings = {
   launchAtLogin: false,
   directPaste: true,
   excludeSensitiveApps: false,
-  openShortcut: windows ? "Control+Shift+Space" : "Alt+Space",
-  batchShortcut: windows ? "Control+Alt+Space" : "Alt+Shift+Space",
-  colorShortcut: windows ? "Control+Shift+KeyC" : "Alt+Shift+KeyC",
-  screenshotShortcut: windows ? "Control+Shift+KeyS" : "Alt+Shift+KeyS",
-  toggleBatchShortcut: windows ? "Control+Shift+KeyM" : "Meta+Shift+KeyM",
+  openShortcut: "Alt+Space",
+  batchShortcut: "Alt+Shift+Space",
+  colorShortcut: "Alt+Shift+KeyC",
+  screenshotShortcut: "Alt+Shift+KeyS",
+  toggleBatchShortcut: "Meta+Shift+KeyM",
   language: "auto",
 };

@@ -8,7 +8,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           react: ["react", "react-dom/client"],
-          three: ["three"],
           icons: ["@phosphor-icons/react"],
           tauri: ["@tauri-apps/api/core", "@tauri-apps/api/event"],
         },

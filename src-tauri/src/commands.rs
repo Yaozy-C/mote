@@ -517,7 +517,7 @@ pub fn start_color_picker(app: AppHandle) -> AppResult<()> {
             unsafe { sampler.showSamplerWithSelectionHandler(&handler) };
         })
         .map_err(|error| AppError::Clipboard(error.to_string()))?;
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(target_os = "macos"))]

@@ -15,7 +15,7 @@ import { UndoToast } from "./components/UndoToast.jsx";
 import { useAppUpdater } from "./hooks/useAppUpdater.js";
 import { useClipboardHistory } from "./hooks/useClipboardHistory.js";
 import { isDesktopRuntime, moteApi } from "./services/moteApi.js";
-import { formatShortcut, isWindowsPlatform, matchesShortcut } from "./utils/shortcuts.js";
+import { formatShortcut, matchesShortcut } from "./utils/shortcuts.js";
 import { createI18n } from "./i18n.js";
 
 export function App() {
@@ -321,7 +321,7 @@ export function App() {
   }, [settingsOpen]);
 
   return (
-    <main className={`desktop-stage ${isDesktopRuntime() ? "native-runtime" : ""} ${isWindowsPlatform() ? "platform-windows" : "platform-macos"} ${history.settings.reduceMotion ? "reduce-motion" : ""}`}>
+    <main className={`desktop-stage platform-macos ${isDesktopRuntime() ? "native-runtime" : ""} ${history.settings.reduceMotion ? "reduce-motion" : ""}`}>
       <img className="ambient-background" src="/assets/mote-ambient-bg.png" alt="" />
       <ParticleField disabled={history.settings.reduceMotion} />
       <section className="mote-window" aria-label={`Mote ${t("history.label")}`}>

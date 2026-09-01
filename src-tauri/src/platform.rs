@@ -14,36 +14,12 @@ extern "C" {
     fn AXIsProcessTrusted() -> bool;
 }
 
-#[cfg(target_os = "windows")]
-#[link(name = "user32")]
-extern "system" {
-    fn GetForegroundWindow() -> isize;
-    fn SetForegroundWindow(window: isize) -> i32;
-    fn GetWindowThreadProcessId(window: isize, process_id: *mut u32) -> u32;
-    fn keybd_event(virtual_key: u8, scan_code: u8, flags: u32, extra_info: usize);
-}
-
-#[cfg(target_os = "windows")]
-#[link(name = "kernel32")]
-extern "system" {
-    fn OpenProcess(access: u32, inherit_handle: i32, process_id: u32) -> isize;
-    fn QueryFullProcessImageNameW(
-        process: isize,
-        flags: u32,
-        path: *mut u16,
-        size: *mut u32,
-    ) -> i32;
-    fn CloseHandle(handle: isize) -> i32;
-}
-
 pub fn accessibility_trusted() -> bool {
     #[cfg(target_os = "macos")]
     unsafe {
-        return AXIsProcessTrusted();
+        AXIsProcessTrusted()
     }
-    #[cfg(target_os = "windows")]
-    return true;
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(not(target_os = "macos"))]
     false
 }
 
@@ -54,13 +30,7 @@ pub fn open_external(value: &str) -> Result<(), String> {
         .spawn()
         .map(|_| ())
         .map_err(|error| error.to_string());
-    #[cfg(target_os = "windows")]
-    return Command::new("explorer.exe")
-        .arg(value)
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| error.to_string());
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(not(target_os = "macos"))]
     Err("Opening links is not available on this platform.".into())
 }
 
@@ -71,13 +41,7 @@ pub fn reveal_file(path: &str) -> Result<(), String> {
         .spawn()
         .map(|_| ())
         .map_err(|error| error.to_string());
-    #[cfg(target_os = "windows")]
-    return Command::new("explorer.exe")
-        .arg(format!("/select,{path}"))
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| error.to_string());
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(not(target_os = "macos"))]
     Err("Revealing files is not available on this platform.".into())
 }
 
@@ -165,7 +129,7 @@ pub fn capture_representations(cache_dir: &Path) -> Result<Vec<ClipboardRepresen
         .ok_or_else(|| "The clipboard does not contain a supported content type.".into())
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub fn capture_representations(_cache_dir: &Path) -> Result<Vec<ClipboardRepresentation>, String> {
     Err("Native compound clipboard capture is available on macOS only.".into())
 }
@@ -194,12 +158,7 @@ fn format_bytes(bytes: usize) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
-pub fn pasteboard_change_count() -> Option<i64> {
-    clipboard_win::raw::seq_num().map(|value| value.get() as i64)
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub fn pasteboard_change_count() -> Option<i64> {
     None
 }
@@ -291,109 +250,7 @@ pub fn write_representations(representations: &[ClipboardRepresentation]) -> Res
         .ok_or_else(|| "Mote could not write the compound clipboard item.".into())
 }
 
-#[cfg(target_os = "windows")]
-pub fn write_representations(representations: &[ClipboardRepresentation]) -> Result<(), String> {
-    use arboard::ImageData;
-    use clipboard_win::{options, raw};
-    use std::{borrow::Cow, path::PathBuf};
-
-    let text = representations
-        .iter()
-        .find(|value| value.format == "text" || value.format == "url")
-        .map(|value| value.content.as_str());
-    let html = representations
-        .iter()
-        .find(|value| value.format == "html")
-        .map(|value| value.content.as_str());
-    let image = representations.iter().find(|value| value.format == "image");
-    let files = representations
-        .iter()
-        .find(|value| value.format == "files")
-        .and_then(|value| serde_json::from_str::<Vec<PathBuf>>(&value.content).ok())
-        .filter(|paths| !paths.is_empty());
-
-    let mut clipboard = arboard::Clipboard::new().map_err(|error| error.to_string())?;
-    if let Some(paths) = files {
-        clipboard
-            .set()
-            .file_list(&paths)
-            .map_err(|error| error.to_string())?;
-    } else if let Some(value) = image {
-        let decoded = decode_png(Path::new(&value.content))?;
-        clipboard
-            .set_image(ImageData {
-                width: decoded.0,
-                height: decoded.1,
-                bytes: Cow::Owned(decoded.2),
-            })
-            .map_err(|error| error.to_string())?;
-    } else if let Some(markup) = html {
-        clipboard
-            .set()
-            .html(markup, text)
-            .map_err(|error| error.to_string())?;
-    } else if let Some(value) = text {
-        clipboard
-            .set_text(value)
-            .map_err(|error| error.to_string())?;
-    } else {
-        return Err("No supported clipboard representation was found.".into());
-    }
-    drop(clipboard);
-
-    // Images and file lists are the primary Windows clipboard format. Add their
-    // textual representations without clearing so a combined copy remains one record.
-    if image.is_some() || representations.iter().any(|value| value.format == "files") {
-        let _guard =
-            clipboard_win::Clipboard::new_attempts(10).map_err(|error| error.to_string())?;
-        if let Some(value) = text {
-            raw::set_string_with(value, options::NoClear).map_err(|error| error.to_string())?;
-        }
-        if let Some(markup) = html {
-            let format = raw::register_format("HTML Format")
-                .ok_or_else(|| "Mote could not register the HTML clipboard format.".to_string())?;
-            raw::set_html_with(format.get(), markup, options::NoClear)
-                .map_err(|error| error.to_string())?;
-        }
-    }
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
-fn decode_png(path: &Path) -> Result<(usize, usize, Vec<u8>), String> {
-    use png::{ColorType, Transformations};
-    let file = std::fs::File::open(path).map_err(|error| error.to_string())?;
-    let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
-    decoder.set_transformations(Transformations::EXPAND | Transformations::STRIP_16);
-    let mut reader = decoder.read_info().map_err(|error| error.to_string())?;
-    let size = reader
-        .output_buffer_size()
-        .ok_or_else(|| "The image is too large to restore.".to_string())?;
-    let mut buffer = vec![0; size];
-    let info = reader
-        .next_frame(&mut buffer)
-        .map_err(|error| error.to_string())?;
-    let pixels = &buffer[..info.buffer_size()];
-    let rgba = match info.color_type {
-        ColorType::Rgba => pixels.to_vec(),
-        ColorType::Rgb => pixels
-            .chunks_exact(3)
-            .flat_map(|pixel| [pixel[0], pixel[1], pixel[2], 255])
-            .collect(),
-        ColorType::GrayscaleAlpha => pixels
-            .chunks_exact(2)
-            .flat_map(|pixel| [pixel[0], pixel[0], pixel[0], pixel[1]])
-            .collect(),
-        ColorType::Grayscale => pixels
-            .iter()
-            .flat_map(|value| [*value, *value, *value, 255])
-            .collect(),
-        ColorType::Indexed => return Err("Mote could not decode this cached image.".into()),
-    };
-    Ok((info.width as usize, info.height as usize, rgba))
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub fn write_representations(_representations: &[ClipboardRepresentation]) -> Result<(), String> {
     Err("Multi-format clipboard write is not available on this platform.".into())
 }
@@ -434,59 +291,12 @@ pub fn frontmost_app_details() -> Option<SourceApplication> {
     })
 }
 
-#[cfg(target_os = "windows")]
-pub fn frontmost_app() -> Option<String> {
-    const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
-    unsafe {
-        let window = GetForegroundWindow();
-        if window == 0 {
-            return None;
-        }
-        let mut process_id = 0;
-        GetWindowThreadProcessId(window, &mut process_id);
-        let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id);
-        let executable = if process == 0 {
-            String::new()
-        } else {
-            let mut path = vec![0u16; 32_768];
-            let mut length = path.len() as u32;
-            let success = QueryFullProcessImageNameW(process, 0, path.as_mut_ptr(), &mut length);
-            CloseHandle(process);
-            if success == 0 {
-                String::new()
-            } else {
-                String::from_utf16_lossy(&path[..length as usize])
-            }
-        };
-        Some(format!("{window}|{executable}"))
-    }
-}
-
-#[cfg(target_os = "windows")]
-pub fn frontmost_app_details() -> Option<SourceApplication> {
-    let target = frontmost_app()?;
-    let path = target
-        .split_once('|')
-        .map(|(_, path)| path)
-        .unwrap_or(&target);
-    let name = Path::new(path)
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .filter(|value| !value.is_empty())
-        .unwrap_or("Unknown app")
-        .to_string();
-    Some(SourceApplication {
-        id: path.to_string(),
-        name,
-    })
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub fn frontmost_app() -> Option<String> {
     None
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub fn frontmost_app_details() -> Option<SourceApplication> {
     None
 }
@@ -515,69 +325,22 @@ pub fn paste_into(bundle_id: Option<&str>) -> Result<(), String> {
     }
 }
 
-#[cfg(target_os = "windows")]
-pub fn paste_into(target: Option<&str>) -> Result<(), String> {
-    const VK_CONTROL: u8 = 0x11;
-    const VK_V: u8 = 0x56;
-    const KEYEVENTF_KEYUP: u32 = 0x0002;
-    if let Some(window) = target
-        .and_then(|value| {
-            value
-                .split_once('|')
-                .map(|parts| parts.0)
-                .unwrap_or(value)
-                .parse::<isize>()
-                .ok()
-        })
-        .filter(|window| *window != 0)
-    {
-        unsafe {
-            SetForegroundWindow(window);
-        }
-    }
-    std::thread::sleep(std::time::Duration::from_millis(140));
-    unsafe {
-        keybd_event(VK_CONTROL, 0, 0, 0);
-        keybd_event(VK_V, 0, 0, 0);
-        keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0);
-        keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
-    }
-    Ok(())
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub fn paste_into(_bundle_id: Option<&str>) -> Result<(), String> {
     Err("Direct paste is not available on this platform.".into())
 }
 
 pub fn is_sensitive_app(bundle_id: Option<&str>) -> bool {
-    #[cfg(target_os = "windows")]
-    return bundle_id.is_some_and(|value| {
-        let executable = value.to_ascii_lowercase();
-        [
-            "1password",
-            "bitwarden",
-            "lastpass",
-            "keepass",
-            "credential",
-        ]
-        .iter()
-        .any(|name| executable.contains(name))
-    });
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        const SENSITIVE: &[&str] = &[
-            "com.1password.1password",
-            "com.agilebits.onepassword7",
-            "com.bitwarden.desktop",
-            "com.lastpass.LastPass",
-            "com.apple.keychainaccess",
-        ];
-        bundle_id.is_some_and(|bundle| {
-            SENSITIVE
-                .iter()
-                .any(|candidate| bundle.eq_ignore_ascii_case(candidate))
-        })
-    }
+    const SENSITIVE: &[&str] = &[
+        "com.1password.1password",
+        "com.agilebits.onepassword7",
+        "com.bitwarden.desktop",
+        "com.lastpass.LastPass",
+        "com.apple.keychainaccess",
+    ];
+    bundle_id.is_some_and(|bundle| {
+        SENSITIVE
+            .iter()
+            .any(|candidate| bundle.eq_ignore_ascii_case(candidate))
+    })
 }

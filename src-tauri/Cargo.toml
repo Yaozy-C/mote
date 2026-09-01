@@ -37,9 +37,6 @@ objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3.2", features = ["block2", "objc2-core-foundation", "NSColor", "NSColorSampler", "NSColorSpace", "NSPasteboard", "NSPasteboardItem"] }
 objc2-foundation = { version = "0.3.2", features = ["NSArray", "NSData", "NSString"] }
 
-[target.'cfg(target_os = "windows")'.dependencies]
-clipboard-win = "5.4.1"
-
 [profile.release]
 codegen-units = 1
 lto = true

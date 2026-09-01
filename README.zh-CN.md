@@ -2,7 +2,7 @@
 
 [English](README.md) · **简体中文**
 
-Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会安静地记录复制内容，支持随时搜索，并能把一条或一组有序内容直接粘贴回刚才使用的应用。
+Mote 是一款面向 Apple 芯片 Mac 的本地剪贴板历史工具。它会安静地记录复制内容，支持随时搜索，并能把一条或一组有序内容直接粘贴回刚才使用的应用。
 
 ![Mote 产品界面](public/assets/mote-interface.png)
 
@@ -28,7 +28,6 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 | 平台 | 安装包 | 自动粘贴 | 说明 |
 | --- | --- | --- | --- |
 | macOS（Apple 芯片） | DMG | 使用 macOS 辅助功能权限 | 支持原生剪贴板格式、有序剪贴板项目和系统屏幕取色器。 |
-| Windows 10/11 x64 | NSIS 安装程序（`.exe`） | 使用标准 `Ctrl+V` 输入方式 | 保留文字、HTML、图片、文件及系统能够提供的组合格式；原生屏幕取色功能暂未提供。 |
 
 前往 [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest) 下载最新版本。
 
@@ -47,15 +46,15 @@ macOS 安装包由公开的 GitHub Actions 构建，但没有经过 Apple 公证
 
 所有应用快捷键都可以在 **设置 → 键盘快捷键** 中修改。
 
-| 操作 | macOS 默认快捷键 | Windows 默认快捷键 |
-| --- | --- | --- |
-| 打开 Mote | `Option + 空格` | `Ctrl + Shift + 空格` |
-| 打开多条粘贴 | `Option + Shift + 空格` | `Ctrl + Alt + 空格` |
-| 提取屏幕颜色 | `Option + Shift + C` | 暂未提供 |
-| 在 Mote 中切换多选模式 | `Command + Shift + M` | `Ctrl + Shift + M` |
-| 搜索 | `Command + K` | `Ctrl + K` |
-| 粘贴选中的内容 | `Enter` | `Enter` |
-| 只复制选中内容、不直接粘贴 | `Command + Enter` | `Ctrl + Enter` |
+| 操作 | 默认快捷键 |
+| --- | --- |
+| 打开 Mote | `Option + 空格` |
+| 打开多条粘贴 | `Option + Shift + 空格` |
+| 提取屏幕颜色 | `Option + Shift + C` |
+| 在 Mote 中切换多选模式 | `Command + Shift + M` |
+| 搜索 | `Command + K` |
+| 粘贴选中的内容 | `Enter` |
+| 只复制选中内容、不直接粘贴 | `Command + Enter` |
 
 取到的颜色会立即复制，并像普通颜色记录一样保存，可继续搜索、置顶、复制 HEX 或 RGB。Mote 会把取色器结果和随后发生的剪贴板变化合并为一条历史记录，避免重复。
 
@@ -64,7 +63,6 @@ macOS 安装包由公开的 GitHub Actions 构建，但没有经过 Apple 公证
 Mote 不需要账号，也不依赖云服务。剪贴板记录和图片预览缓存在操作系统的应用数据目录中，并保存在本地 SQLite 数据库里。
 
 - **macOS：**辅助功能权限只用于把粘贴快捷键发送给打开 Mote 之前正在使用的应用。仅打开系统设置并不会完成授权，还需要在 **隐私与安全性 → 辅助功能** 中开启 Mote；如果 macOS 仍显示未授权，请在开启后退出并重新打开 Mote。
-- **Windows：**不需要单独授予辅助功能权限；如果目标应用以管理员身份运行，Windows 可能会阻止普通权限的 Mote 向其中粘贴。
 - **敏感应用：**可以开启“忽略密码管理器”，当识别到敏感应用处于前台时不记录新的剪贴板内容。
 
 ## 本地开发
@@ -74,9 +72,7 @@ Mote 不需要账号，也不依赖云服务。剪贴板记录和图片预览缓
 - Node.js 22 或更高版本
 - npm
 - Rust 1.77.2 或更高版本
-- 对应平台的构建工具：
-  - macOS：Xcode Command Line Tools
-  - Windows：Visual Studio 2022 Build Tools，安装“使用 C++ 的桌面开发”工作负载，并安装 WebView2
+- Xcode Command Line Tools
 
 ### 运行桌面应用
 
@@ -93,14 +89,10 @@ npm run test:sites
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-请在对应的操作系统中生成原生安装包：
+请在 macOS 中生成原生安装包：
 
 ```bash
-# macOS
 npm run desktop:bundle:dmg
-
-# Windows
-npm run desktop:bundle:windows
 ```
 
 ## 项目结构
@@ -110,18 +102,18 @@ src/                         React 界面
   components/                历史记录、预览、帮助、设置和弹窗
   hooks/                     剪贴板历史和升级状态
   services/                  Tauri 命令桥接与网页演示数据
-  utils/                     跨平台快捷键处理
+  utils/                     macOS 快捷键处理
 src-tauri/                   Tauri 原生应用
   src/database.rs            SQLite 存储、搜索、保留策略和撤销
   src/watcher.rs             剪贴板监听与记录生成
-  src/platform.rs            macOS 和 Windows 原生剪贴板及粘贴能力
+  src/platform.rs            macOS 原生剪贴板及粘贴能力
   src/commands.rs            提供给界面的原生命令
-.github/workflows/release.yml  macOS 与 Windows GitHub Release 构建
+.github/workflows/release.yml  macOS GitHub Release 构建
 worker/                      可交付到 Sites 的网页预览 Worker
 ```
 
 ## 发布与升级
 
-推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片 DMG、Windows x64 NSIS 安装包、升级文件、`latest.json`，以及汇总全部安装文件的 `SHA256SUMS.txt`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查；不再支持 Intel Mac。
+推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片 DMG、升级文件、`latest.json`，以及汇总全部安装文件的 `SHA256SUMS.txt`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查；不再支持 Intel Mac。
 
-升级文件已经使用密钥签名。macOS 应用目前使用临时签名且未经 Apple 公证；Windows 安装包也没有 Authenticode 签名。因此，新设备首次安装时仍可能显示“无法验证开发者”或“未知发布者”提示。
+升级文件已经使用密钥签名。macOS 应用目前使用临时签名且未经 Apple 公证，因此新设备首次安装时仍可能显示“无法验证开发者”提示。

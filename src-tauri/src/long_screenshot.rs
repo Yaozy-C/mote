@@ -76,7 +76,7 @@ pub fn request_screen_capture() -> bool {
 
 #[cfg(not(target_os = "macos"))]
 pub fn request_accessibility() -> bool {
-    cfg!(target_os = "windows")
+    false
 }
 
 #[cfg(not(target_os = "macos"))]

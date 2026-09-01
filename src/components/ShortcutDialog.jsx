@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { IconCommand, IconSearch, IconStack2, IconX } from "@tabler/icons-react";
-import { formatShortcut, isWindowsPlatform, shortcutFromEvent } from "../utils/shortcuts.js";
+import { formatShortcut, shortcutFromEvent } from "../utils/shortcuts.js";
 
 export function ShortcutDialog({ settings, onChange, onClose, t, locale }) {
   const [category, setCategory] = useState("global");
@@ -30,7 +30,7 @@ export function ShortcutDialog({ settings, onChange, onClose, t, locale }) {
 }
 
 function shortcutCategories(settings, update, t) {
-  const primary = isWindowsPlatform() ? "Control" : "Meta";
+  const primary = "Meta";
   const editable = (title, detail, value, key) => ({ title, detail, value, editable: true, onChange: (next) => update({ [key]: next }) });
   const fixed = (title, detail, value) => ({ title, detail, value, editable: false });
   return [

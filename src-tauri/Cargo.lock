@@ -2645,7 +2645,6 @@ dependencies = [
  "arboard",
  "block2",
  "chrono",
- "clipboard-win",
  "image",
  "objc2",
  "objc2-app-kit",
