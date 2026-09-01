@@ -41,17 +41,17 @@ function UpdateRow({ updater, t }) {
   );
 }
 
-export function SettingsPopover({ popoverRef, settings, onChange, onClear, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, t }) {
+export function SettingsPopover({ popoverRef, settings, onChange, onClear, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, onRequestScreenCapture, t }) {
   const [section, setSection] = useState("general");
   const [permissionCheck, setPermissionCheck] = useState("idle");
   useEffect(() => {
-    if (permissionStatus.accessibility) setPermissionCheck("ready");
-  }, [permissionStatus.accessibility]);
+    if (permissionStatus.accessibility && permissionStatus.screenCapture) setPermissionCheck("ready");
+  }, [permissionStatus.accessibility, permissionStatus.screenCapture]);
   const update = (patch) => onChange({ ...settings, ...patch });
   const checkPermissions = async () => {
     setPermissionCheck("checking");
     const status = await onRefreshPermissions();
-    setPermissionCheck(status?.accessibility ? "ready" : "needed");
+    setPermissionCheck(status?.accessibility && status?.screenCapture ? "ready" : "needed");
   };
   const permissionCheckLabel = permissionCheck === "checking"
     ? t("permission.checking")
@@ -77,6 +77,7 @@ export function SettingsPopover({ popoverRef, settings, onChange, onClear, updat
         <div className="settings-card permission-card">
           <PermissionRow title={t("permission.capture")} detail={permissionStatus.clipboardCapture ? t("permission.ready") : t("permission.captureOff")} ready={permissionStatus.clipboardCapture} />
           <PermissionRow title={t("permission.autoPaste")} detail={permissionStatus.accessibility ? t("permission.ready") : t("permission.accessibilityNeeded")} ready={permissionStatus.accessibility} action={!permissionStatus.accessibility && <button onClick={onOpenAccessibility}>{t("permission.fix")}</button>} />
+          <PermissionRow title={t("permission.screenCapture")} detail={permissionStatus.screenCapture ? t("permission.ready") : t("permission.screenCaptureNeeded")} ready={permissionStatus.screenCapture} action={!permissionStatus.screenCapture && <button onClick={onRequestScreenCapture}>{t("permission.allow")}</button>} />
           <button className={`permission-refresh ${permissionCheck}`} disabled={permissionCheck === "checking"} onClick={checkPermissions} aria-live="polite">{permissionCheck === "ready" ? <CheckCircle size={13} weight="fill" /> : <ArrowClockwise className={permissionCheck === "checking" ? "update-spinner" : ""} size={13} />}{permissionCheckLabel}</button>
         </div>
         {permissionCheck === "needed" && <small className="permission-check-note">{t("permission.restartHint")}</small>}

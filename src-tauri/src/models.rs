@@ -52,6 +52,14 @@ pub struct ClipboardItem {
 pub struct PermissionStatus {
     pub clipboard_capture: bool,
     pub accessibility: bool,
+    pub screen_capture: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongScreenshotTarget {
+    pub bundle_id: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,6 +77,7 @@ pub struct AppSettings {
     pub open_shortcut: String,
     pub batch_shortcut: String,
     pub color_shortcut: String,
+    pub screenshot_shortcut: String,
     pub toggle_batch_shortcut: String,
     pub language: String,
 }
@@ -87,6 +96,7 @@ impl Default for AppSettings {
             open_shortcut: default_open_shortcut().into(),
             batch_shortcut: default_batch_shortcut().into(),
             color_shortcut: default_color_shortcut().into(),
+            screenshot_shortcut: default_screenshot_shortcut().into(),
             toggle_batch_shortcut: default_toggle_batch_shortcut().into(),
             language: "auto".into(),
         }
@@ -118,6 +128,15 @@ fn default_color_shortcut() -> &'static str {
 #[cfg(not(target_os = "windows"))]
 fn default_color_shortcut() -> &'static str {
     "Alt+Shift+KeyC"
+}
+
+#[cfg(target_os = "windows")]
+fn default_screenshot_shortcut() -> &'static str {
+    "Control+Shift+KeyS"
+}
+#[cfg(not(target_os = "windows"))]
+fn default_screenshot_shortcut() -> &'static str {
+    "Alt+Shift+KeyS"
 }
 
 #[cfg(target_os = "windows")]

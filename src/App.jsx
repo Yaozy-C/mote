@@ -5,6 +5,8 @@ import { ClearHistoryDialog } from "./components/ClearHistoryDialog.jsx";
 import { ErrorDialog } from "./components/ErrorDialog.jsx";
 import { HelpDialog } from "./components/HelpDialog.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
+import { LongScreenshotOverlay } from "./components/LongScreenshotOverlay.jsx";
+import { NativeLongScreenshotDialog } from "./components/NativeLongScreenshotDialog.jsx";
 import { ParticleField } from "./components/ParticleField.jsx";
 import { SettingsPopover } from "./components/SettingsPopover.jsx";
 import { ShortcutDialog } from "./components/ShortcutDialog.jsx";
@@ -24,10 +26,11 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [shortcutOpen, setShortcutOpen] = useState(false);
+  const [screenshotOpen, setScreenshotOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
   const [actionError, setActionError] = useState("");
-  const [permissionStatus, setPermissionStatus] = useState({ clipboardCapture: history.settings.captureEnabled, accessibility: false });
+  const [permissionStatus, setPermissionStatus] = useState({ clipboardCapture: history.settings.captureEnabled, accessibility: false, screenCapture: false });
   const [undoState, setUndoState] = useState(null);
   const searchRef = useRef(null);
   const settingsButtonRef = useRef(null);
@@ -74,6 +77,32 @@ export function App() {
     if (item) await history.selectNewItem(item);
   });
 
+  const handleOpenScreenshot = () => {
+    setSettingsOpen(false);
+    setHelpOpen(false);
+    setShortcutOpen(false);
+    setScreenshotOpen(true);
+  };
+
+  const handleScreenshotComplete = async (capture) => {
+    const item = await moteApi.saveCapturedImage(capture);
+    if (item) await history.selectNewItem(item);
+    setActionDone({ type: "copied" });
+    window.setTimeout(() => setActionDone(null), 1500);
+  };
+
+  const handleNativeScreenshot = async (maxSteps) => {
+    try {
+      setActionError("");
+      await moteApi.startNativeLongScreenshot(maxSteps);
+      setActionDone({ type: "copied" });
+      window.setTimeout(() => setActionDone(null), 1500);
+    } catch (cause) {
+      setActionError(String(cause));
+      throw cause;
+    }
+  };
+
   useEffect(() => {
     const onKey = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -85,6 +114,11 @@ export function App() {
         handlePickColor();
         return;
       }
+      if (matchesShortcut(event, history.settings.screenshotShortcut)) {
+        event.preventDefault();
+        handleOpenScreenshot();
+        return;
+      }
       if (matchesShortcut(event, history.settings.toggleBatchShortcut)) {
         event.preventDefault();
         setSettingsOpen(false);
@@ -94,6 +128,10 @@ export function App() {
         return;
       }
       if (event.key === "Escape") {
+        if (screenshotOpen) {
+          setScreenshotOpen(false);
+          return;
+        }
         if (actionError || settingsOpen || helpOpen || shortcutOpen || clearConfirmOpen) {
           setActionError("");
           setSettingsOpen(false);
@@ -144,7 +182,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [actionError, clearConfirmOpen, clearingHistory, helpOpen, shortcutOpen, settingsOpen, history]);
+  }, [actionError, clearConfirmOpen, clearingHistory, helpOpen, screenshotOpen, shortcutOpen, settingsOpen, history]);
 
   useEffect(() => {
     let dispose = () => {};
@@ -173,6 +211,12 @@ export function App() {
     moteApi.onOpenColorPicker(() => handlePickColor()).then((unlisten) => { dispose = unlisten; });
     return () => dispose();
   }, [history.selectNewItem]);
+
+  useEffect(() => {
+    let dispose = () => {};
+    moteApi.onOpenScreenshot(handleOpenScreenshot).then((unlisten) => { dispose = unlisten; });
+    return () => dispose();
+  }, []);
 
   useEffect(() => {
     let disposePicked = () => {};
@@ -226,6 +270,11 @@ export function App() {
     }
   };
 
+  const requestAccessibility = async () => {
+    await moteApi.requestAccessibilityAccess();
+    window.setTimeout(refreshPermissions, 500);
+  };
+
   const offerUndo = (ids) => {
     window.clearTimeout(undoTimer.current);
     setUndoState({ ids, count: ids.length });
@@ -276,24 +325,27 @@ export function App() {
       <img className="ambient-background" src="/assets/mote-ambient-bg.png" alt="" />
       <ParticleField disabled={history.settings.reduceMotion} />
       <section className="mote-window" aria-label={`Mote ${t("history.label")}`}>
-        <AppTitlebar history={history} locale={locale} t={t} searchRef={searchRef} settingsButtonRef={settingsButtonRef} onPickColor={handlePickColor} onPin={() => runAction(history.togglePin)} onOpenShortcuts={() => { setSettingsOpen(false); setHelpOpen(false); setShortcutOpen(true); }} onOpenHelp={() => { setSettingsOpen(false); setHelpOpen(true); }} onToggleSettings={() => setSettingsOpen((value) => !value)} />
+        <AppTitlebar history={history} locale={locale} t={t} searchRef={searchRef} settingsButtonRef={settingsButtonRef} onPickColor={handlePickColor} onScreenshot={handleOpenScreenshot} onPin={() => runAction(history.togglePin)} onOpenShortcuts={() => { setSettingsOpen(false); setHelpOpen(false); setShortcutOpen(true); }} onOpenHelp={() => { setSettingsOpen(false); setHelpOpen(true); }} onToggleSettings={() => setSettingsOpen((value) => !value)} />
 
         <div className="workspace">
           <HistoryPanel items={history.items} selectedId={history.selectedId} onSelect={history.setSelectedId} loading={history.loading} error={history.error} batchMode={history.batchMode} batchSelectedIds={history.batchSelectedIds} onStartBatch={history.startBatchSelection} onCancelBatch={history.cancelBatchSelection} onToggleBatch={(id) => { history.setSelectedId(id); history.toggleBatchSelection(id); }} toggleShortcut={formatShortcut(history.settings.toggleBatchShortcut, locale)} t={t} locale={locale} />
           <PreviewPanel history={history} actionDone={actionDone} t={t} locale={locale} onError={setActionError} onPaste={handlePaste} onCopy={handleCopy} onPlainText={handlePlainText} onPin={() => runAction(history.togglePin)} onDelete={handleDelete} />
         </div>
 
-        {settingsOpen && <SettingsPopover popoverRef={settingsPopoverRef} settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
+        {settingsOpen && <SettingsPopover popoverRef={settingsPopoverRef} settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={requestAccessibility} onRequestScreenCapture={async () => { await moteApi.requestScreenCaptureAccess(); await refreshPermissions(); }} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
           setSettingsOpen(false);
           setClearConfirmOpen(true);
         }} />}
-        {helpOpen && <HelpDialog onClose={closeHelp} settings={history.settings} permissionStatus={permissionStatus} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} t={t} locale={locale} />}
+        {helpOpen && <HelpDialog onClose={closeHelp} settings={history.settings} permissionStatus={permissionStatus} onOpenAccessibility={requestAccessibility} t={t} locale={locale} />}
         {shortcutOpen && <ShortcutDialog settings={history.settings} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClose={() => setShortcutOpen(false)} t={t} locale={locale} />}
         {clearConfirmOpen && <ClearHistoryDialog busy={clearingHistory} onCancel={() => setClearConfirmOpen(false)} onConfirm={handleClearHistory} t={t} />}
         {(updater.status === "available" || updater.status === "downloading" || updater.status === "restarting" || updater.status === "error") && <UpdateDialog updater={updater} t={t} />}
         {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenSettings={() => moteApi.openAccessibilitySettings()} />}
         {undoState && <UndoToast count={undoState.count} onUndo={handleUndo} t={t} />}
       </section>
+      {screenshotOpen && (isDesktopRuntime()
+        ? <NativeLongScreenshotDialog permissionStatus={permissionStatus} t={t} onClose={() => setScreenshotOpen(false)} onCapture={handleNativeScreenshot} onOpenAccessibility={requestAccessibility} onRefreshPermissions={refreshPermissions} />
+        : <LongScreenshotOverlay reduceMotion={history.settings.reduceMotion} t={t} onClose={() => setScreenshotOpen(false)} onComplete={(capture) => runAction(() => handleScreenshotComplete(capture))} />)}
     </main>
   );
 }

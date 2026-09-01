@@ -2,6 +2,7 @@ mod classifier;
 mod commands;
 mod database;
 mod error;
+mod long_screenshot;
 mod models;
 mod ocr;
 mod platform;
@@ -19,7 +20,9 @@ use tauri::{
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
-fn configured_shortcuts(settings: &AppSettings) -> Result<(Shortcut, Shortcut, Shortcut), String> {
+fn configured_shortcuts(
+    settings: &AppSettings,
+) -> Result<(Shortcut, Shortcut, Shortcut, Shortcut), String> {
     let open = settings
         .open_shortcut
         .parse::<Shortcut>()
@@ -32,16 +35,27 @@ fn configured_shortcuts(settings: &AppSettings) -> Result<(Shortcut, Shortcut, S
         .color_shortcut
         .parse::<Shortcut>()
         .map_err(|error| format!("Invalid Color Picker shortcut: {error}"))?;
-    if open == batch || open == color || batch == color {
+    let screenshot = settings
+        .screenshot_shortcut
+        .parse::<Shortcut>()
+        .map_err(|error| format!("Invalid Scrolling Screenshot shortcut: {error}"))?;
+    if open == batch
+        || open == color
+        || open == screenshot
+        || batch == color
+        || batch == screenshot
+        || color == screenshot
+    {
         return Err("Each Mote global shortcut must use a different key combination.".into());
     }
     if settings.toggle_batch_shortcut == settings.open_shortcut
         || settings.toggle_batch_shortcut == settings.batch_shortcut
         || settings.toggle_batch_shortcut == settings.color_shortcut
+        || settings.toggle_batch_shortcut == settings.screenshot_shortcut
     {
         return Err("Each Mote shortcut must use a different key combination.".into());
     }
-    Ok((open, batch, color))
+    Ok((open, batch, color, screenshot))
 }
 
 pub(crate) fn replace_global_shortcuts(
@@ -53,6 +67,7 @@ pub(crate) fn replace_global_shortcuts(
     if previous.open_shortcut == next.open_shortcut
         && previous.batch_shortcut == next.batch_shortcut
         && previous.color_shortcut == next.color_shortcut
+        && previous.screenshot_shortcut == next.screenshot_shortcut
     {
         return Ok(());
     }
@@ -60,15 +75,19 @@ pub(crate) fn replace_global_shortcuts(
     manager
         .unregister_all()
         .map_err(|error| error.to_string())?;
-    if let Err(error) =
-        manager.register_multiple([next_shortcuts.0, next_shortcuts.1, next_shortcuts.2])
-    {
+    if let Err(error) = manager.register_multiple([
+        next_shortcuts.0,
+        next_shortcuts.1,
+        next_shortcuts.2,
+        next_shortcuts.3,
+    ]) {
         let _ = manager.unregister_all();
         if let Ok(previous_shortcuts) = configured_shortcuts(previous) {
             let _ = manager.register_multiple([
                 previous_shortcuts.0,
                 previous_shortcuts.1,
                 previous_shortcuts.2,
+                previous_shortcuts.3,
             ]);
         }
         return Err(format!("Mote could not register that shortcut: {error}"));
@@ -116,12 +135,15 @@ pub fn run() {
                     let Ok(settings) = app.state::<AppState>().database.settings() else {
                         return;
                     };
-                    let Ok((open_shortcut, batch_shortcut, color_shortcut)) =
+                    let Ok((open_shortcut, batch_shortcut, color_shortcut, screenshot_shortcut)) =
                         configured_shortcuts(&settings)
                     else {
                         return;
                     };
-                    if shortcut == &color_shortcut {
+                    if shortcut == &screenshot_shortcut {
+                        show_main_window(app);
+                        let _ = app.emit("mote://open-screenshot", ());
+                    } else if shortcut == &color_shortcut {
                         let _ = app.emit("mote://open-color-picker", ());
                     } else if shortcut == &open_shortcut || shortcut == &batch_shortcut {
                         show_main_window(app);
@@ -161,10 +183,10 @@ pub fn run() {
                 .settings()
                 .unwrap_or_default();
             match configured_shortcuts(&settings) {
-                Ok((open, batch, color)) => {
+                Ok((open, batch, color, screenshot)) => {
                     if let Err(error) = app
                         .global_shortcut()
-                        .register_multiple([open, batch, color])
+                        .register_multiple([open, batch, color, screenshot])
                     {
                         eprintln!("Mote could not register its shortcuts: {error}");
                     }
@@ -230,6 +252,23 @@ pub fn run() {
             WindowEvent::Focused(true) => {
                 let _ = window.emit("mote://window-focused", ());
             }
+            WindowEvent::Focused(false) if window.label() == "main" => {
+                let app = window.app_handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(180));
+                    let Some(bundle_id) = platform::frontmost_app() else {
+                        return;
+                    };
+                    if bundle_id == "com.mote.clipboard"
+                        || bundle_id == "com.apple.systempreferences"
+                    {
+                        return;
+                    }
+                    if let Ok(mut active) = app.state::<AppState>().last_active_app.lock() {
+                        *active = Some(bundle_id);
+                    }
+                });
+            }
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
@@ -245,13 +284,18 @@ pub fn run() {
             commands::restore_clipboard_items,
             commands::hide_main_window,
             commands::open_accessibility_settings,
+            commands::request_accessibility_access,
             commands::get_permission_status,
+            commands::request_screen_capture_access,
+            commands::get_long_screenshot_target,
+            commands::start_native_long_screenshot,
             commands::open_external,
             commands::reveal_file,
             commands::check_file_paths,
             commands::copy_text_value,
             commands::paste_text_value,
             commands::start_color_picker,
+            commands::write_captured_image,
             commands::get_settings,
             commands::update_settings,
         ])

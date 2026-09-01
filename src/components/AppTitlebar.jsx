@@ -1,8 +1,8 @@
 import { GearSix, MagnifyingGlass, Question, X } from "@phosphor-icons/react";
-import { IconColorPicker, IconKeyboard, IconPinned } from "@tabler/icons-react";
+import { IconColorPicker, IconKeyboard, IconPinned, IconScreenshot } from "@tabler/icons-react";
 import { formatShortcut, primaryModifierLabel } from "../utils/shortcuts.js";
 
-export function AppTitlebar({ history, locale, t, searchRef, settingsButtonRef, onPickColor, onPin, onOpenShortcuts, onOpenHelp, onToggleSettings }) {
+export function AppTitlebar({ history, locale, t, searchRef, settingsButtonRef, onPickColor, onScreenshot, onPin, onOpenShortcuts, onOpenHelp, onToggleSettings }) {
   return <header className="titlebar" data-tauri-drag-region>
     <div className="search-shell">
       <MagnifyingGlass size={18} weight="regular" />
@@ -12,6 +12,7 @@ export function AppTitlebar({ history, locale, t, searchRef, settingsButtonRef, 
     </div>
     <div className="title-actions">
       <button className="color-picker-action" aria-label={`${t("app.pickColor")} ${formatShortcut(history.settings.colorShortcut, locale)}`} title={`${t("app.pickColor")} · ${formatShortcut(history.settings.colorShortcut, locale)}`} onClick={onPickColor}><IconColorPicker size={18} stroke={1.75} /></button>
+      <button aria-label={`${t("app.longScreenshot")} ${formatShortcut(history.settings.screenshotShortcut, locale)}`} title={`${t("app.longScreenshot")} · ${formatShortcut(history.settings.screenshotShortcut, locale)}`} onClick={onScreenshot}><IconScreenshot size={18} stroke={1.75} /></button>
       <button aria-label={t("app.pinSelected")} disabled={history.batchMode} onClick={onPin} className={history.selected?.pinned ? "active" : ""}><IconPinned size={18} stroke={1.75} /></button>
       <button aria-label={t("app.openShortcuts")} title={t("app.openShortcuts")} onClick={onOpenShortcuts}><IconKeyboard size={18} stroke={1.75} /></button>
       <button aria-label={t("app.openHelp")} onClick={onOpenHelp}><Question size={20} /></button>

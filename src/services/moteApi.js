@@ -125,9 +125,29 @@ export const moteApi = {
     if (isDesktopRuntime()) return invoke("open_accessibility_settings");
   },
 
+  async requestAccessibilityAccess() {
+    if (isDesktopRuntime()) return invoke("request_accessibility_access");
+    return true;
+  },
+
   async getPermissionStatus() {
     if (isDesktopRuntime()) return invoke("get_permission_status");
-    return { clipboardCapture: loadDemoSettings().captureEnabled, accessibility: true };
+    return { clipboardCapture: loadDemoSettings().captureEnabled, accessibility: true, screenCapture: true };
+  },
+
+  async requestScreenCaptureAccess() {
+    if (isDesktopRuntime()) return invoke("request_screen_capture_access");
+    return true;
+  },
+
+  async getLongScreenshotTarget() {
+    if (isDesktopRuntime()) return invoke("get_long_screenshot_target");
+    return { bundleId: "com.google.Chrome", name: "Chrome" };
+  },
+
+  async startNativeLongScreenshot(maxSteps = 36) {
+    if (!isDesktopRuntime()) throw new Error("Native scrolling capture is only available in the desktop app.");
+    return invoke("start_native_long_screenshot", { maxSteps });
   },
 
   async openExternal(value) {
@@ -190,6 +210,36 @@ export const moteApi = {
     return item;
   },
 
+  async saveCapturedImage(capture) {
+    if (isDesktopRuntime()) {
+      await invoke("write_captured_image", { rgba: capture.rgba, width: capture.width, height: capture.height });
+      return null;
+    }
+    const items = loadDemoItems();
+    const item = normalizeItem({
+      id: Math.max(0, ...items.map((candidate) => Number(candidate.id))) + 1,
+      kind: "image",
+      title: "长截图 · Mote Journal",
+      content: capture.dataUrl,
+      detail: `Image · ${capture.width} × ${capture.height}`,
+      byteSize: null,
+      createdAt: Date.now(),
+      pinned: false,
+      sourceAppId: "com.google.Chrome",
+      sourceAppName: "Chrome",
+      ocrText: "让工具跟上思考的速度\n关于剪贴板、连续阅读，以及不应该打断注意力的细节。",
+      ocrStatus: "ready",
+    });
+    saveDemoItems([item, ...items]);
+    try {
+      const blob = await (await fetch(capture.dataUrl)).blob();
+      if (navigator.clipboard?.write && window.ClipboardItem) await navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })]);
+    } catch {
+      // Browser preview may not grant image clipboard access; the history result remains available.
+    }
+    return item;
+  },
+
   async getSettings() {
     return isDesktopRuntime() ? invoke("get_settings") : loadDemoSettings();
   },
@@ -225,6 +275,16 @@ export const moteApi = {
   async onOpenColorPicker(callback) {
     if (!isDesktopRuntime()) return () => {};
     return listen("mote://open-color-picker", callback);
+  },
+
+  async onOpenScreenshot(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://open-screenshot", callback);
+  },
+
+  async onLongScreenshotComplete(callback) {
+    if (!isDesktopRuntime()) return () => {};
+    return listen("mote://long-screenshot-complete", callback);
   },
 
   async onColorPicked(callback) {

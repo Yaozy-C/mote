@@ -182,3 +182,40 @@
 .confirm-cancel { border: 1px solid var(--separator); color: var(--primary); background: rgba(255,255,255,.72); }
 .confirm-delete { border: 1px solid #ff3b30; color: white; background: #ff3b30; }
 
+.native-capture-backdrop { position: fixed; z-index: 1300; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(20,20,24,.28); backdrop-filter: blur(16px) saturate(.88); -webkit-backdrop-filter: blur(16px) saturate(.88); animation: backdrop-enter .16s ease both; }
+.native-capture-dialog { position: relative; width: min(470px,100%); padding: 25px; border: 1px solid rgba(255,255,255,.74); border-radius: 15px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); animation: dialog-enter .22s var(--ease-mac) both; }
+.native-capture-close { position: absolute; top: 11px; right: 11px; width: 29px; height: 29px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; color: var(--secondary); background: transparent; cursor: pointer; }
+.native-capture-close:hover { background: rgba(118,118,128,.1); }
+.native-capture-dialog > header { display: flex; align-items: center; gap: 13px; padding-right: 30px; }
+.native-capture-dialog > header > span { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 11px; color: var(--accent); background: rgba(10,132,255,.1); }
+.native-capture-dialog header p { margin: 0 0 3px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .1em; }
+.native-capture-dialog h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; }
+.native-capture-dialog header small { display: block; margin-top: 4px; color: var(--secondary); font-size: 11px; line-height: 1.4; }
+.native-target-card { min-height: 74px; display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 11px; margin-top: 19px; padding: 11px 13px; border: 1px solid rgba(60,60,67,.12); border-radius: 10px; background: rgba(255,255,255,.68); }
+.native-target-card > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; color: #55555a; background: rgba(118,118,128,.1); }
+.native-target-card div { min-width: 0; }
+.native-target-card small, .native-target-card strong, .native-target-card p { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.native-target-card small { color: var(--tertiary); font-size: 9px; }
+.native-target-card strong { margin-top: 2px; font-size: 13px; }
+.native-target-card p { margin: 2px 0 0; color: var(--secondary); font-size: 10px; }
+.native-ready-check { color: #28a769; }
+.native-capture-permissions { margin-top: 13px; border: 1px solid rgba(60,60,67,.11); border-radius: 10px; background: rgba(246,246,248,.7); }
+.native-capture-permissions > div { min-height: 43px; display: grid; grid-template-columns: 24px minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid rgba(60,60,67,.09); }
+.native-capture-permissions > div:last-child { border-bottom: 0; }
+.native-capture-permissions span { color: var(--secondary); }
+.native-capture-permissions strong { font-size: 11px; font-weight: 600; }
+.native-capture-permissions small { font-size: 10px; }
+.native-capture-permissions small.ready { color: #248a55; }
+.native-capture-permissions small.needed { color: #d47700; }
+.native-permission-restart { margin: -4px 2px 2px; color: var(--secondary-text); font-size: 11px; line-height: 1.45; }
+.native-capture-permissions button { height: 25px; padding: 0 8px; border: 1px solid rgba(10,132,255,.22); border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.08); font-size: 10px; cursor: pointer; }
+.native-capture-length { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; padding: 9px 12px; border: 1px solid rgba(60,60,67,.11); border-radius: 10px; background: rgba(255,255,255,.66); }
+.native-capture-length strong, .native-capture-length small { display: block; }
+.native-capture-length strong { font-size: 11px; }
+.native-capture-length small { margin-top: 3px; color: var(--secondary); font-size: 9px; }
+.native-capture-length select { height: 28px; padding: 0 25px 0 8px; border: 1px solid var(--separator); border-radius: 6px; background: rgba(255,255,255,.82); font-size: 10px; }
+.native-capture-note { margin: 13px 3px 0; color: var(--secondary); font-size: 10px; line-height: 1.45; }
+.native-capture-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 19px; }
+.native-capture-dialog > footer button { min-width: 82px; height: 34px; padding: 0 13px; border: 1px solid var(--separator); border-radius: 7px; background: rgba(255,255,255,.72); font-size: 12px; font-weight: 600; cursor: pointer; }
+.native-capture-dialog > footer .native-capture-start { min-width: 128px; color: white; border-color: var(--accent); background: var(--accent); }
+.native-capture-dialog > footer button:disabled { opacity: .5; cursor: default; }

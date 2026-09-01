@@ -6,7 +6,10 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::{
     error::{AppError, AppResult},
-    models::{AppSettings, ClipboardItem, ClipboardRepresentation, PermissionStatus},
+    long_screenshot,
+    models::{
+        AppSettings, ClipboardItem, ClipboardRepresentation, LongScreenshotTarget, PermissionStatus,
+    },
     platform,
     state::AppState,
 };
@@ -274,11 +277,103 @@ pub fn open_accessibility_settings() -> AppResult<()> {
 }
 
 #[tauri::command]
+pub fn request_accessibility_access() -> AppResult<bool> {
+    let trusted = long_screenshot::request_accessibility();
+    if !trusted {
+        open_accessibility_settings()?;
+    }
+    Ok(trusted)
+}
+
+#[tauri::command]
 pub fn get_permission_status(state: State<'_, AppState>) -> AppResult<PermissionStatus> {
     Ok(PermissionStatus {
         clipboard_capture: state.database.settings()?.capture_enabled,
         accessibility: platform::accessibility_trusted(),
+        screen_capture: long_screenshot::screen_capture_ready(),
     })
+}
+
+#[tauri::command]
+pub fn request_screen_capture_access() -> bool {
+    long_screenshot::request_screen_capture()
+}
+
+#[tauri::command]
+pub fn get_long_screenshot_target(state: State<'_, AppState>) -> AppResult<LongScreenshotTarget> {
+    let bundle_id = state
+        .last_active_app
+        .lock()
+        .ok()
+        .and_then(|value| value.clone())
+        .filter(|value| value != "com.mote.clipboard")
+        .ok_or_else(|| {
+            AppError::Clipboard(
+                "Open Mote from the app you want to capture, then try again.".into(),
+            )
+        })?;
+    let name = bundle_id
+        .rsplit('.')
+        .next()
+        .filter(|value| !value.is_empty())
+        .unwrap_or("App")
+        .to_string();
+    Ok(LongScreenshotTarget { bundle_id, name })
+}
+
+#[tauri::command]
+pub async fn start_native_long_screenshot(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    max_steps: Option<u32>,
+) -> AppResult<()> {
+    if !platform::accessibility_trusted() {
+        return Err(AppError::Clipboard(
+            "Accessibility access is required to scroll the target application.".into(),
+        ));
+    }
+    if !long_screenshot::screen_capture_ready() && !long_screenshot::request_screen_capture() {
+        return Err(AppError::Clipboard(
+            "Screen Recording access is required to capture the target window.".into(),
+        ));
+    }
+    let target = get_long_screenshot_target(state)?;
+    let output = std::env::temp_dir().join(format!(
+        "mote-long-screenshot-{}.png",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+    ));
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+    thread::sleep(Duration::from_millis(180));
+    let bundle_id = target.bundle_id;
+    let capture_output = output.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        long_screenshot::capture(&bundle_id, &capture_output, max_steps.unwrap_or(36))
+    })
+    .await
+    .map_err(|error| error.to_string())
+    .and_then(|value| value);
+
+    let write_result = result.map_err(AppError::Clipboard).and_then(|_| {
+        let image =
+            Image::from_path(&output).map_err(|error| AppError::Clipboard(error.to_string()))?;
+        app.clipboard()
+            .write_image(&image)
+            .map_err(|error| AppError::Clipboard(error.to_string()))
+    });
+    let _ = std::fs::remove_file(&output);
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+    if write_result.is_ok() {
+        let _ = app.emit("mote://long-screenshot-complete", ());
+    }
+    write_result
 }
 
 #[tauri::command]
@@ -310,6 +405,28 @@ pub fn check_file_paths(paths: Vec<String>) -> Vec<bool> {
 pub fn copy_text_value(app: AppHandle, value: String) -> AppResult<()> {
     app.clipboard()
         .write_text(value)
+        .map_err(|error| AppError::Clipboard(error.to_string()))
+}
+
+#[tauri::command]
+pub fn write_captured_image(
+    app: AppHandle,
+    rgba: Vec<u8>,
+    width: u32,
+    height: u32,
+) -> AppResult<()> {
+    let expected = (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|value| value.checked_mul(4))
+        .ok_or_else(|| AppError::Clipboard("The captured image is too large.".into()))?;
+    if width == 0 || height == 0 || rgba.len() != expected {
+        return Err(AppError::Clipboard(
+            "The captured image data is incomplete.".into(),
+        ));
+    }
+    let image = Image::new_owned(rgba, width, height);
+    app.clipboard()
+        .write_image(&image)
         .map_err(|error| AppError::Clipboard(error.to_string()))
 }
 

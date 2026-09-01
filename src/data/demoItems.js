@@ -27,6 +27,7 @@ export const defaultSettings = {
   openShortcut: windows ? "Control+Shift+Space" : "Alt+Space",
   batchShortcut: windows ? "Control+Alt+Space" : "Alt+Shift+Space",
   colorShortcut: windows ? "Control+Shift+KeyC" : "Alt+Shift+KeyC",
+  screenshotShortcut: windows ? "Control+Shift+KeyS" : "Alt+Shift+KeyS",
   toggleBatchShortcut: windows ? "Control+Shift+KeyM" : "Meta+Shift+KeyM",
   language: "auto",
 };

@@ -12,6 +12,7 @@ export function ShortcutDialog({ settings, onChange, onClose, t, locale }) {
         <ShortcutRow title={t("settings.openMote")} detail={t("settings.openMoteDetail")} value={settings.openShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ openShortcut: value })} />
         <ShortcutRow title={t("settings.openMultiple")} detail={t("settings.openMultipleDetail")} value={settings.batchShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ batchShortcut: value })} />
         <ShortcutRow title={t("settings.pickColor")} detail={t("settings.pickColorDetail")} value={settings.colorShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ colorShortcut: value })} />
+        <ShortcutRow title={t("settings.longScreenshot")} detail={t("settings.longScreenshotDetail")} value={settings.screenshotShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ screenshotShortcut: value })} />
         <ShortcutRow title={t("settings.toggleMultiple")} detail={t("settings.toggleMultipleDetail")} value={settings.toggleBatchShortcut} pressKeys={t("settings.pressKeys")} locale={locale} onChange={(value) => update({ toggleBatchShortcut: value })} />
       </div>
       <p className="shortcut-hint">{t("shortcut.hint")}</p>
