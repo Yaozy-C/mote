@@ -27,7 +27,7 @@ Mote 是一款面向 macOS 和 Windows 的本地剪贴板历史工具。它会�
 
 | 平台 | 安装包 | 自动粘贴 | 说明 |
 | --- | --- | --- | --- |
-| macOS（Apple 芯片与 Intel） | DMG | 使用 macOS 辅助功能权限 | 支持原生剪贴板格式、有序剪贴板项目和系统屏幕取色器。 |
+| macOS（Apple 芯片） | DMG | 使用 macOS 辅助功能权限 | 支持原生剪贴板格式、有序剪贴板项目和系统屏幕取色器。 |
 | Windows 10/11 x64 | NSIS 安装程序（`.exe`） | 使用标准 `Ctrl+V` 输入方式 | 保留文字、HTML、图片、文件及系统能够提供的组合格式；原生屏幕取色功能暂未提供。 |
 
 前往 [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest) 下载最新版本。
@@ -122,6 +122,6 @@ worker/                      可交付到 Sites 的网页预览 Worker
 
 ## 发布与升级
 
-推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片和 Intel 版本的 DMG、Windows x64 NSIS 安装包、升级文件、`latest.json`，以及汇总全部安装文件的 `SHA256SUMS.txt`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查。
+推送 `v0.3.0` 这类版本标签后，Release 工作流会生成 Apple 芯片 DMG、Windows x64 NSIS 安装包、升级文件、`latest.json`，以及汇总全部安装文件的 `SHA256SUMS.txt`。Mote 会读取对应的 GitHub Release 信息进行应用内更新检查；不再支持 Intel Mac。
 
 升级文件已经使用密钥签名。macOS 应用目前使用临时签名且未经 Apple 公证；Windows 安装包也没有 Authenticode 签名。因此，新设备首次安装时仍可能显示“无法验证开发者”或“未知发布者”提示。

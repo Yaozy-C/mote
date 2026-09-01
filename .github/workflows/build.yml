@@ -20,8 +20,6 @@ jobs:
         include:
           - arch: Apple Silicon
             target: aarch64-apple-darwin
-          - arch: Intel
-            target: x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v4

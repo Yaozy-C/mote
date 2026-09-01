@@ -27,7 +27,7 @@ Mote is a private clipboard history app for macOS and Windows. It quietly record
 
 | Platform | Package | Automatic paste | Notes |
 | --- | --- | --- | --- |
-| macOS (Apple Silicon and Intel) | DMG | Uses macOS Accessibility permission | Native pasteboard representations, ordered pasteboard items, and the system screen color sampler are supported. |
+| macOS (Apple Silicon) | DMG | Uses macOS Accessibility permission | Native pasteboard representations, ordered pasteboard items, and the system screen color sampler are supported. |
 | Windows 10/11 x64 | NSIS installer (`.exe`) | Uses the standard `Ctrl+V` input path | Text, HTML, images, files, and available combined formats are preserved. Native screen color picking is not yet available. |
 
 Download the newest build from [GitHub Releases](https://github.com/Yaozy-C/mote/releases/latest).
@@ -122,6 +122,6 @@ worker/                      Sites-compatible web preview worker
 
 ## Releases and updates
 
-Pushing a version tag such as `v0.3.0` runs the release workflow. It builds Apple Silicon and Intel DMGs, a Windows x64 NSIS installer, updater artifacts, `latest.json`, and a consolidated `SHA256SUMS.txt`. Mote uses that GitHub Release metadata for in-app update checks.
+Pushing a version tag such as `v0.3.0` runs the release workflow. It builds an Apple Silicon DMG, a Windows x64 NSIS installer, updater artifacts, `latest.json`, and a consolidated `SHA256SUMS.txt`. Mote uses that GitHub Release metadata for in-app update checks. Intel Macs are not supported.
 
 The updater artifacts are cryptographically signed. The macOS application uses an ad-hoc signature and is not Apple-notarized; the Windows installer is not Authenticode-signed. Fresh machines may therefore show an unverified-developer or unknown-publisher warning.
