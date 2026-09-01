@@ -1,4 +1,4 @@
-import { ArrowsClockwise, CheckCircle, DownloadSimple, X } from "@phosphor-icons/react";
+import { ArrowsClockwise, CheckCircle, DownloadSimple } from "@phosphor-icons/react";
 
 export function UpdateDialog({ updater, t }) {
   const busy = updater.status === "downloading" || updater.status === "restarting";
@@ -8,12 +8,12 @@ export function UpdateDialog({ updater, t }) {
   return (
     <div className="update-backdrop" role="presentation">
       <section className="update-dialog" role="dialog" aria-modal="true" aria-labelledby="update-title">
-        {!busy && <button className="update-close" onClick={updater.dismiss} aria-label={t("update.later")}><X size={15} /></button>}
-        <div className={`update-icon ${failed ? "failed" : ""}`}>
-          {updater.status === "restarting" ? <CheckCircle size={24} weight="fill" /> : <DownloadSimple size={23} weight="regular" />}
+        <div className="update-heading">
+          <div className={`update-icon ${failed ? "failed" : ""}`}>
+            {updater.status === "restarting" ? <CheckCircle size={19} weight="fill" /> : <DownloadSimple size={18} weight="regular" />}
+          </div>
+          <h2 id="update-title">{failed ? t("update.failedTitle") : t("update.title", { version: updater.nextVersion })}</h2>
         </div>
-        <p className="update-eyebrow">{failed ? t("update.failedEyebrow") : t("update.eyebrow")}</p>
-        <h2 id="update-title">{failed ? t("update.failedTitle") : t("update.title", { version: updater.nextVersion })}</h2>
         <p className="update-detail">
           {failed ? t("update.failedDetail") : updater.status === "restarting" ? t("update.restarting") : updater.notes || t("update.detail")}
         </p>

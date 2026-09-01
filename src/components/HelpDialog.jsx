@@ -3,7 +3,7 @@ import { IconArrowBackUp, IconChevronLeft, IconChevronRight, IconClipboard, Icon
 import { formatShortcut, primaryModifierLabel } from "../utils/shortcuts.js";
 
 export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessibility, t, locale }) {
-  const pages = useMemo(() => helpPages(settings, permissionStatus, onOpenAccessibility, t, locale), [settings, permissionStatus, onOpenAccessibility, t, locale]);
+  const pages = useMemo(() => helpTopics(helpPages(settings, permissionStatus, onOpenAccessibility, t, locale), t), [settings, permissionStatus, onOpenAccessibility, t, locale]);
   const [index, setIndex] = useState(0);
   const page = pages[index];
   const move = (direction) => setIndex((current) => (current + direction + pages.length) % pages.length);
@@ -15,19 +15,15 @@ export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessib
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [pages.length]);
-  const PageIcon = page.icon;
   return <div className="help-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="tips-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
       <button className="help-close" onClick={onClose} aria-label={t("help.close")}><IconX size={18} stroke={1.75} /></button>
-      <header className="tips-topbar"><img src="/assets/mote-logo.png" alt="" /><div><strong>{t("help.guide")}</strong><small>{t("help.guideSubtitle")}</small></div><span>{index + 1} / {pages.length}</span></header>
+      <header className="tips-topbar"><strong>{t("help.guide")}</strong><span>{index + 1} / {pages.length}</span></header>
       <main className="tips-content" key={page.id}>
-        <div className="tip-page-icon"><PageIcon size={30} stroke={1.6} /></div>
-        <p className="tip-page-eyebrow">{page.eyebrow}</p>
-        <h2 id="help-title">{page.title}</h2>
-        <p className="tip-page-body">{page.body}</p>
-        {page.shortcut && <kbd className="tip-page-shortcut">{page.shortcut}</kbd>}
-        <div className="tip-page-example">{page.example}</div>
-        {page.action}
+        <h2 id="help-title">{page.label}</h2>
+        <div className="tip-feature-list">
+          {page.features.map((feature) => <TipFeature key={feature.id} feature={feature} />)}
+        </div>
       </main>
       <footer className="tips-navigation">
         <button onClick={() => move(-1)} aria-label={t("help.previous")}><IconChevronLeft size={20} stroke={1.8} /></button>
@@ -36,6 +32,25 @@ export function HelpDialog({ onClose, settings, permissionStatus, onOpenAccessib
       </footer>
     </section>
   </div>;
+}
+
+function TipFeature({ feature }) {
+  const FeatureIcon = feature.icon;
+  return <article className="tip-feature">
+    <span className="tip-feature-icon"><FeatureIcon size={19} stroke={1.65} /></span>
+    <div className="tip-feature-copy"><strong>{feature.title}</strong><p>{feature.body}</p>{feature.shortcut && <kbd>{feature.shortcut}</kbd>}{feature.action}</div>
+    <div className="tip-feature-example">{feature.example}</div>
+  </article>;
+}
+
+function helpTopics(features, t) {
+  return [
+    { id: "start", label: t("help.topicStart"), features: features.slice(0, 3) },
+    { id: "content", label: t("help.topicContent"), features: features.slice(3, 7) },
+    { id: "capture", label: t("help.screenshotTitle"), features: features.slice(7, 8) },
+    { id: "multiple", label: t("help.topicMultiple"), features: features.slice(8, 10) },
+    { id: "manage", label: t("help.topicManage"), features: features.slice(10) },
+  ];
 }
 
 function helpPages(settings, permissionStatus, onOpenAccessibility, t, locale) {

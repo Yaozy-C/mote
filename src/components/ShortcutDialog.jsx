@@ -10,13 +10,13 @@ export function ShortcutDialog({ settings, onChange, onClose, t, locale }) {
   return <div className="help-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="shortcut-dialog" role="dialog" aria-modal="true" aria-labelledby="shortcut-title">
       <button className="help-close" onClick={onClose} aria-label={t("shortcut.close")}><IconX size={18} stroke={1.75} /></button>
-      <header><span><IconCommand size={22} stroke={1.7} /></span><div><p>{t("shortcut.eyebrow")}</p><h2 id="shortcut-title">{t("shortcut.title")}</h2><small>{t("shortcut.intro")}</small></div></header>
+      <header><h2 id="shortcut-title">{t("shortcut.title")}</h2></header>
       <div className="shortcut-layout">
         <nav className="shortcut-categories" aria-label={t("shortcut.categories")}>
           {categories.map(({ id, icon: Icon, label }) => <button key={id} className={active.id === id ? "active" : ""} onClick={() => setCategory(id)}><Icon size={17} stroke={1.7} /><span>{label}</span></button>)}
         </nav>
         <div className="shortcut-category-panel">
-          <div className="shortcut-category-heading"><strong>{active.label}</strong><small>{active.detail}</small></div>
+          <div className="shortcut-category-heading"><small>{active.detail}</small></div>
           <div className="shortcut-list">
             {active.rows.map((row) => row.editable
               ? <ShortcutRow key={row.title} {...row} pressKeys={t("settings.pressKeys")} locale={locale} />
@@ -24,7 +24,7 @@ export function ShortcutDialog({ settings, onChange, onClose, t, locale }) {
           </div>
         </div>
       </div>
-      <footer><p className="shortcut-hint">{t("shortcut.hint")}</p><button className="shortcut-done" onClick={onClose}>{t("help.done")}</button></footer>
+      <p className="shortcut-hint">{t("shortcut.hint")}</p>
     </section>
   </div>;
 }
@@ -59,7 +59,7 @@ function shortcutCategories(settings, update, t) {
 
 function FixedShortcutRow({ title, detail, value, locale }) {
   const values = Array.isArray(value) ? value : [value];
-  return <div className="shortcut-dialog-row"><span><strong>{title}</strong><small>{detail}</small></span><div className="shortcut-fixed">{values.map((item) => <kbd key={item}>{item === "Escape" ? "Esc" : formatShortcut(item, locale)}</kbd>)}</div></div>;
+  return <div className="shortcut-dialog-row"><span><strong>{title}</strong></span><div className="shortcut-fixed">{values.map((item) => <kbd key={item}>{item === "Escape" ? "Esc" : formatShortcut(item, locale)}</kbd>)}</div></div>;
 }
 
 function ShortcutRow({ title, detail, value, onChange, pressKeys, locale }) {
@@ -73,5 +73,5 @@ function ShortcutRow({ title, detail, value, onChange, pressKeys, locale }) {
     setRecording(false);
     onChange(shortcut);
   };
-  return <div className="shortcut-dialog-row"><span><strong>{title}</strong><small>{detail}</small></span><button className={recording ? "recording" : ""} onClick={() => setRecording(true)} onBlur={() => setRecording(false)} onKeyDown={recording ? capture : undefined}>{recording ? pressKeys : formatShortcut(value, locale)}</button></div>;
+  return <div className="shortcut-dialog-row"><span><strong>{title}</strong></span><button className={recording ? "recording" : ""} onClick={() => setRecording(true)} onBlur={() => setRecording(false)} onKeyDown={recording ? capture : undefined}>{recording ? pressKeys : formatShortcut(value, locale)}</button></div>;
 }

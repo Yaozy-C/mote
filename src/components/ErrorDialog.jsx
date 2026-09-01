@@ -1,4 +1,4 @@
-import { GearSix, WarningCircle, X } from "@phosphor-icons/react";
+import { GearSix, WarningCircle } from "@phosphor-icons/react";
 
 export function ErrorDialog({ message, onClose, onOpenSettings, t }) {
   const isAccessibilityError = message.toLowerCase().includes("accessibility");
@@ -12,10 +12,8 @@ export function ErrorDialog({ message, onClose, onOpenSettings, t }) {
   return (
     <div className="error-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="error-dialog" role="alertdialog" aria-modal="true" aria-labelledby="error-title" aria-describedby="error-detail">
-        <button className="error-close" onClick={onClose} aria-label={t("error.close")}><X size={18} /></button>
-        <span className="error-icon"><WarningCircle size={27} weight="fill" /></span>
+        <span className="error-icon"><WarningCircle size={20} weight="fill" /></span>
         <div>
-          <p className="error-eyebrow">{t("error.actionNeeded")}</p>
           <h2 id="error-title">{isAccessibilityError ? t("error.pasteTitle") : t("error.genericTitle")}</h2>
           <p id="error-detail" className="error-detail">{detail}</p>
         </div>
