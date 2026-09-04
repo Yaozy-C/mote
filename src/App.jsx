@@ -6,7 +6,6 @@ import { ErrorDialog } from "./components/ErrorDialog.jsx";
 import { HelpDialog } from "./components/HelpDialog.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
 import { LongScreenshotOverlay } from "./components/LongScreenshotOverlay.jsx";
-import { NativeLongScreenshotDialog } from "./components/NativeLongScreenshotDialog.jsx";
 import { ParticleField } from "./components/ParticleField.jsx";
 import { SettingsPopover } from "./components/SettingsPopover.jsx";
 import { ShortcutDialog } from "./components/ShortcutDialog.jsx";
@@ -81,6 +80,10 @@ export function App() {
     setSettingsOpen(false);
     setHelpOpen(false);
     setShortcutOpen(false);
+    if (isDesktopRuntime()) {
+      handleNativeScreenshot(36).catch(() => {});
+      return;
+    }
     setScreenshotOpen(true);
   };
 
@@ -354,9 +357,7 @@ export function App() {
         {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenSettings={() => moteApi.openAccessibilitySettings()} />}
         {undoState && <UndoToast count={undoState.count} onUndo={handleUndo} t={t} />}
       </section>
-      {screenshotOpen && (isDesktopRuntime()
-        ? <NativeLongScreenshotDialog permissionStatus={permissionStatus} t={t} onClose={() => setScreenshotOpen(false)} onCapture={handleNativeScreenshot} onOpenAccessibility={requestAccessibility} onRefreshPermissions={refreshPermissions} onRepairPermissions={repairPermissions} />
-        : <LongScreenshotOverlay reduceMotion={history.settings.reduceMotion} t={t} onClose={() => setScreenshotOpen(false)} onComplete={(capture) => runAction(() => handleScreenshotComplete(capture))} />)}
+      {screenshotOpen && <LongScreenshotOverlay reduceMotion={history.settings.reduceMotion} t={t} onClose={() => setScreenshotOpen(false)} onComplete={(capture) => runAction(() => handleScreenshotComplete(capture))} />}
     </main>
   );
 }
