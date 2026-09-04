@@ -11,7 +11,7 @@
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
-    "desktop:run": "npm run build:web && /Users/yaozhongyao/.cargo/bin/cargo run --release --features tauri/custom-protocol --manifest-path src-tauri/Cargo.toml",
+    "desktop:run": "node scripts/run-signed-macos.mjs",
     "desktop:build": "tauri build --bundles app --config '{\"bundle\":{\"createUpdaterArtifacts\":false,\"macOS\":{\"signingIdentity\":null}}}'",
     "desktop:bundle:dmg": "tauri build --bundles dmg --config '{\"bundle\":{\"createUpdaterArtifacts\":false,\"macOS\":{\"signingIdentity\":null}}}'"
   },

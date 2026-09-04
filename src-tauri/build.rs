@@ -12,7 +12,12 @@ fn build_macos_capture_engine() {
     let output = PathBuf::from(env::var("OUT_DIR").expect("build output directory"));
     let library = output.join("libmote_long_screenshot.a");
     let mut objects = Vec::new();
-    for name in ["MoteLongScreenshot", "MoteScreenshotSelector"] {
+    for name in [
+        "MoteLongScreenshot",
+        "MoteScreenshotSupport",
+        "MoteScreenshotView",
+        "MoteScreenshotSelector",
+    ] {
         let source = manifest.join(format!("native/macos/{name}.m"));
         let object = output.join(format!("{name}.o"));
         println!("cargo:rerun-if-changed={}", source.display());
