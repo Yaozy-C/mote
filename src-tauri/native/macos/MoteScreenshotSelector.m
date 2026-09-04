@@ -29,6 +29,17 @@ static NSRect all_screens_frame(void) {
     return result;
 }
 
+static NSRect standardized_rect(NSRect rect) {
+    CGFloat opposite_x = rect.origin.x + rect.size.width;
+    CGFloat opposite_y = rect.origin.y + rect.size.height;
+    return NSMakeRect(
+        MIN(rect.origin.x, opposite_x),
+        MIN(rect.origin.y, opposite_y),
+        fabs(rect.size.width),
+        fabs(rect.size.height)
+    );
+}
+
 static NSArray<NSValue *> *candidate_window_rects(void) {
     CFArrayRef info = CGWindowListCopyWindowInfo(
         kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
@@ -143,7 +154,7 @@ static BOOL write_selector_png(CGImageRef image, const char *path, char *error, 
     if (!self.dragging && hypot(point.x - self.downPoint.x, point.y - self.downPoint.y) >= 4) self.dragging = YES;
     if (!self.dragging) return;
     NSRect rect = NSMakeRect(self.downPoint.x, self.downPoint.y, point.x - self.downPoint.x, point.y - self.downPoint.y);
-    self.selectedLocalRect = NSIntersectionRect(NSStandardizeRect(rect), self.bounds);
+    self.selectedLocalRect = NSIntersectionRect(standardized_rect(rect), self.bounds);
     [self setNeedsDisplay:YES];
 }
 
