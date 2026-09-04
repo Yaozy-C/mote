@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
+#import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #include <math.h>
@@ -19,6 +20,32 @@ static CGFloat primary_top(void) {
 
 static NSRect appkit_rect_from_cg(CGRect rect) {
     return NSMakeRect(rect.origin.x, primary_top() - CGRectGetMaxY(rect), rect.size.width, rect.size.height);
+}
+
+static CGRect cg_rect_from_appkit(NSRect rect) {
+    return CGRectMake(rect.origin.x, primary_top() - NSMaxY(rect), rect.size.width, rect.size.height);
+}
+
+static CGImageRef capture_screen_rect(CGRect rect, NSError **result_error) {
+    if (@available(macOS 15.2, *)) {
+        __block CGImageRef result = nil;
+        __block NSError *capture_error = nil;
+        dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+        [SCScreenshotManager captureImageInRect:rect completionHandler:^(CGImageRef image, NSError *error) {
+            if (image) result = CGImageRetain(image);
+            capture_error = error;
+            dispatch_semaphore_signal(semaphore);
+        }];
+        dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 12 * NSEC_PER_SEC));
+        if (result_error) *result_error = capture_error;
+        return result;
+    }
+    return CGWindowListCreateImage(
+        rect,
+        kCGWindowListOptionOnScreenOnly,
+        kCGNullWindowID,
+        kCGWindowImageBestResolution
+    );
 }
 
 static NSRect all_screens_frame(void) {
@@ -181,14 +208,10 @@ static int run_selector(const char *output_path, char *error, size_t error_lengt
         selector_error(error, error_length, @"Mote could not find an active display.");
         return 2;
     }
-    CGImageRef desktop_image = CGWindowListCreateImage(
-        CGRectInfinite,
-        kCGWindowListOptionOnScreenOnly,
-        kCGNullWindowID,
-        kCGWindowImageBestResolution
-    );
+    NSError *desktop_error = nil;
+    CGImageRef desktop_image = capture_screen_rect(cg_rect_from_appkit(desktop), &desktop_error);
     if (!desktop_image) {
-        selector_error(error, error_length, @"Screen Recording access is required to start a screenshot.");
+        selector_error(error, error_length, desktop_error.localizedDescription ?: @"Screen Recording access is required to start a screenshot.");
         return 3;
     }
 
@@ -210,23 +233,26 @@ static int run_selector(const char *output_path, char *error, size_t error_lengt
     [panel makeFirstResponder:view];
     NSModalResponse response = [NSApp runModalForWindow:panel];
     [panel orderOut:nil];
-    CGImageRelease(desktop_image);
-    if (response != NSModalResponseOK) return 1;
+    if (response != NSModalResponseOK) {
+        CGImageRelease(desktop_image);
+        return 1;
+    }
 
     NSRect selected = view.resultScreenRect;
-    CGRect capture_rect = CGRectMake(
-        selected.origin.x,
-        primary_top() - NSMaxY(selected),
-        selected.size.width,
-        selected.size.height
+    CGRect desktop_rect = cg_rect_from_appkit(desktop);
+    CGRect capture_rect = cg_rect_from_appkit(selected);
+    CGFloat scale_x = (CGFloat)CGImageGetWidth(desktop_image) / desktop_rect.size.width;
+    CGFloat scale_y = (CGFloat)CGImageGetHeight(desktop_image) / desktop_rect.size.height;
+    CGRect pixel_rect = CGRectMake(
+        floor((capture_rect.origin.x - desktop_rect.origin.x) * scale_x),
+        floor((capture_rect.origin.y - desktop_rect.origin.y) * scale_y),
+        ceil(capture_rect.size.width * scale_x),
+        ceil(capture_rect.size.height * scale_y)
     );
-    usleep(90000);
-    CGImageRef capture = CGWindowListCreateImage(
-        capture_rect,
-        kCGWindowListOptionOnScreenOnly,
-        kCGNullWindowID,
-        kCGWindowImageBestResolution
-    );
+    CGRect image_bounds = CGRectMake(0, 0, CGImageGetWidth(desktop_image), CGImageGetHeight(desktop_image));
+    pixel_rect = CGRectIntersection(pixel_rect, image_bounds);
+    CGImageRef capture = CGRectIsEmpty(pixel_rect) ? nil : CGImageCreateWithImageInRect(desktop_image, pixel_rect);
+    CGImageRelease(desktop_image);
     if (!capture) {
         selector_error(error, error_length, @"Mote could not capture the selected area.");
         return 4;
