@@ -277,6 +277,17 @@ pub fn open_accessibility_settings() -> AppResult<()> {
 }
 
 #[tauri::command]
+pub fn open_screen_capture_settings() -> AppResult<()> {
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| AppError::Clipboard(error.to_string()))?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn request_accessibility_access() -> AppResult<bool> {
     let trusted = long_screenshot::request_accessibility();
     if !trusted {
@@ -301,8 +312,7 @@ pub fn request_screen_capture_access() -> bool {
 
 #[tauri::command]
 pub fn repair_permission_access(app: AppHandle) -> AppResult<()> {
-    platform::reset_privacy_permissions(&app.config().identifier)
-        .map_err(AppError::Clipboard)?;
+    platform::reset_privacy_permissions(&app.config().identifier).map_err(AppError::Clipboard)?;
     let _ = long_screenshot::request_screen_capture();
     let _ = long_screenshot::request_accessibility();
     Ok(())

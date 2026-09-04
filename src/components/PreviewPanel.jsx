@@ -1,6 +1,6 @@
 import { IconCheck, IconClipboard, IconClipboardText, IconCopy, IconPinned, IconStack2, IconTrash } from "@tabler/icons-react";
 import { BatchPreview } from "./BatchPreview.jsx";
-import { DetailPreview } from "./DetailPreview.jsx";
+import { DetailPluginHost } from "./detail/DetailPluginHost.jsx";
 import { primaryModifierLabel } from "../utils/shortcuts.js";
 
 export function PreviewPanel({ history, actionDone, t, locale, onError, onPaste, onCopy, onPlainText, onPin, onDelete }) {
@@ -9,7 +9,7 @@ export function PreviewPanel({ history, actionDone, t, locale, onError, onPaste,
     : history.settings.directPaste ? t("action.paste") : t("action.copy");
   return <section className="preview-panel" aria-live="polite">
     <div className="preview-scroll"><div className="preview-transition" key={history.batchMode ? `batch-${history.batchSelectedIds.join("-")}` : history.selectedId ?? "empty"}>
-      {history.batchMode ? <BatchPreview items={history.batchSelectedItems} onMoveItem={history.moveBatchItem} t={t} /> : history.selected ? <DetailPreview item={history.selected} t={t} locale={locale} onError={onError} /> : <div className="empty-state"><strong>{t("empty.clipboard")}</strong></div>}
+      {history.batchMode ? <BatchPreview items={history.batchSelectedItems} onMoveItem={history.moveBatchItem} t={t} /> : history.selected ? <DetailPluginHost item={history.selected} t={t} locale={locale} onError={onError} /> : <div className="empty-state"><strong>{t("empty.clipboard")}</strong></div>}
     </div></div>
     {history.batchMode ? <footer className="preview-actions batch-actions">
       <button className="primary-action" disabled={!history.batchSelectedItems.length} onClick={onPaste}><IconStack2 size={18} stroke={1.75} /> {t("multi.pasteCount", { count: history.batchSelectedItems.length || "" })}<kbd>↵</kbd></button>

@@ -386,7 +386,7 @@ impl Database {
     pub fn pending_ocr_images(&self, limit: u32) -> AppResult<Vec<(i64, Vec<String>)>> {
         let connection = self.lock()?;
         let mut statement = connection.prepare(
-            "SELECT item.id, representation.content FROM clipboard_items item JOIN clipboard_representations representation ON representation.item_id = item.id AND representation.format = 'image' WHERE item.deleted_at IS NULL AND (item.ocr_status IS NULL OR item.ocr_status IN ('pending', 'failed')) ORDER BY item.created_at DESC, representation.item_index ASC, representation.ordinal ASC",
+            "SELECT item.id, representation.content FROM clipboard_items item JOIN clipboard_representations representation ON representation.item_id = item.id AND representation.format = 'image' WHERE item.deleted_at IS NULL AND (item.ocr_status IS NULL OR item.ocr_status IN ('pending', 'failed')) ORDER BY item.created_at DESC, representation.item_index ASC, representation.id ASC",
         )?;
         let rows = statement.query_map([], |row| {
             Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
@@ -650,6 +650,36 @@ mod tests {
         }];
         let item = database.insert_snapshot(snapshot, 100).unwrap();
         assert!(item.missing_files);
+    }
+
+    #[test]
+    fn lists_pending_ocr_images_in_representation_order() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let mut snapshot = text_snapshot("images to recognize");
+        snapshot.kind = "mixed".into();
+        snapshot.representations = vec![
+            ClipboardRepresentation {
+                item_index: 1,
+                format: "image".into(),
+                content: "/tmp/second.png".into(),
+                byte_size: None,
+                native_type: Some("public.png".into()),
+                binary: true,
+            },
+            ClipboardRepresentation {
+                item_index: 0,
+                format: "image".into(),
+                content: "/tmp/first.png".into(),
+                byte_size: None,
+                native_type: Some("public.png".into()),
+                binary: true,
+            },
+        ];
+        database.insert_snapshot(snapshot, 100).unwrap();
+
+        let pending = database.pending_ocr_images(10).unwrap();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].1, ["/tmp/first.png", "/tmp/second.png"]);
     }
 
     #[test]

@@ -355,7 +355,7 @@ export function App() {
         {shortcutOpen && <ShortcutDialog settings={history.settings} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClose={() => setShortcutOpen(false)} t={t} locale={locale} />}
         {clearConfirmOpen && <ClearHistoryDialog busy={clearingHistory} onCancel={() => setClearConfirmOpen(false)} onConfirm={handleClearHistory} t={t} />}
         {(updater.status === "available" || updater.status === "downloading" || updater.status === "restarting" || updater.status === "error") && <UpdateDialog updater={updater} t={t} />}
-        {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenSettings={() => moteApi.openAccessibilitySettings()} />}
+        {actionError && <ErrorDialog message={actionError} t={t} onClose={() => setActionError("")} onOpenAccessibility={() => moteApi.openAccessibilitySettings()} onOpenScreenCapture={() => moteApi.openScreenCaptureSettings()} />}
         {undoState && <UndoToast count={undoState.count} onUndo={handleUndo} t={t} />}
       </section>
       {screenshotOpen && <LongScreenshotOverlay reduceMotion={history.settings.reduceMotion} t={t} onClose={() => setScreenshotOpen(false)} onComplete={(capture) => runAction(() => handleScreenshotComplete(capture))} />}

@@ -14,6 +14,7 @@ use crate::{
     database::Database,
     models::{ClipboardRepresentation, NewClipboardItem},
     platform,
+    utils::format_bytes,
 };
 
 const MAX_CAPTURE_CHARS: usize = 100_000;
@@ -396,14 +397,6 @@ fn display_format(format: &str) -> &'static str {
         "files" => "Files",
         "pdf" => "PDF",
         _ => "Data",
-    }
-}
-
-fn format_bytes(bytes: usize) -> String {
-    if bytes >= 1_048_576 {
-        format!("{:.1} MB", bytes as f64 / 1_048_576.0)
-    } else {
-        format!("{} KB", (bytes / 1024).max(1))
     }
 }
 

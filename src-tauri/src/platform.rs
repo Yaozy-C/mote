@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, path::Path, process::Command};
 
 use crate::models::ClipboardRepresentation;
+use crate::utils::format_bytes;
 
 #[derive(Debug, Clone)]
 pub struct SourceApplication {
@@ -40,7 +41,7 @@ pub fn reset_privacy_permissions(bundle_id: &str) -> Result<(), String> {
                 });
             }
         }
-        return Ok(());
+        Ok(())
     }
     #[cfg(not(target_os = "macos"))]
     Err("Privacy permission repair is available on macOS only.".into())
@@ -171,14 +172,6 @@ fn save_native_payload(
         std::fs::write(&path, bytes).map_err(|error| error.to_string())?;
     }
     Ok(path)
-}
-
-fn format_bytes(bytes: usize) -> String {
-    if bytes >= 1_048_576 {
-        format!("{:.1} MB", bytes as f64 / 1_048_576.0)
-    } else {
-        format!("{} KB", (bytes / 1024).max(1))
-    }
 }
 
 #[cfg(not(target_os = "macos"))]

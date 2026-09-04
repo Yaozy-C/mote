@@ -7,6 +7,7 @@ mod models;
 mod ocr;
 mod platform;
 mod state;
+mod utils;
 mod watcher;
 
 use database::Database;
@@ -283,6 +284,7 @@ pub fn run() {
             commands::restore_clipboard_items,
             commands::hide_main_window,
             commands::open_accessibility_settings,
+            commands::open_screen_capture_settings,
             commands::request_accessibility_access,
             commands::get_permission_status,
             commands::request_screen_capture_access,

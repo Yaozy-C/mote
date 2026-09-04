@@ -125,6 +125,10 @@ export const moteApi = {
     if (isDesktopRuntime()) return invoke("open_accessibility_settings");
   },
 
+  async openScreenCaptureSettings() {
+    if (isDesktopRuntime()) return invoke("open_screen_capture_settings");
+  },
+
   async requestAccessibilityAccess() {
     if (isDesktopRuntime()) return invoke("request_accessibility_access");
     return true;
@@ -144,19 +148,9 @@ export const moteApi = {
     if (isDesktopRuntime()) return invoke("repair_permission_access");
   },
 
-  async getLongScreenshotTarget() {
-    if (isDesktopRuntime()) return invoke("get_long_screenshot_target");
-    return { bundleId: "com.google.Chrome", name: "Chrome" };
-  },
-
   async startNativeScreenshot() {
     if (!isDesktopRuntime()) throw new Error("Native screenshot selection is only available in the desktop app.");
     return invoke("start_native_screenshot");
-  },
-
-  async startNativeLongScreenshot(maxSteps = 36) {
-    if (!isDesktopRuntime()) throw new Error("Native scrolling capture is only available in the desktop app.");
-    return invoke("start_native_long_screenshot", { maxSteps });
   },
 
   async openExternal(value) {
@@ -289,11 +283,6 @@ export const moteApi = {
   async onOpenScreenshot(callback) {
     if (!isDesktopRuntime()) return () => {};
     return listen("mote://open-screenshot", callback);
-  },
-
-  async onLongScreenshotComplete(callback) {
-    if (!isDesktopRuntime()) return () => {};
-    return listen("mote://long-screenshot-complete", callback);
   },
 
   async onColorPicked(callback) {

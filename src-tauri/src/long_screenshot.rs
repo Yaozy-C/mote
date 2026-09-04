@@ -40,9 +40,8 @@ mod native {
         let output = CString::new(output_path.to_string_lossy().as_bytes())
             .map_err(|_| "The screenshot output path is invalid.".to_string())?;
         let mut error = vec![0_i8; 1024];
-        let status = unsafe {
-            mote_select_screenshot(output.as_ptr(), error.as_mut_ptr(), error.len())
-        };
+        let status =
+            unsafe { mote_select_screenshot(output.as_ptr(), error.as_mut_ptr(), error.len()) };
         if status == 0 {
             return Ok(true);
         }
@@ -91,7 +90,9 @@ mod native {
 }
 
 #[cfg(target_os = "macos")]
-pub use native::{capture, request_accessibility, request_screen_capture, screen_capture_ready, select_screenshot};
+pub use native::{
+    capture, request_accessibility, request_screen_capture, screen_capture_ready, select_screenshot,
+};
 
 #[cfg(not(target_os = "macos"))]
 pub fn screen_capture_ready() -> bool {

@@ -30,7 +30,7 @@
 .permission-issue button { height: 24px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.08); font-size: 9px; font-weight: 600; cursor: pointer; }
 .permission-repair { display: flex; align-items: center; gap: 8px; padding: 7px 9px 7px 10px; border-top: 1px solid rgba(60,60,67,.09); color: #8a4200; }
 .permission-repair small { flex: 1; font-size: 8.5px; line-height: 1.35; }
-.permission-repair button, .native-permission-repair button { flex: none; min-height: 24px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.09); font-size: 9px; font-weight: 600; cursor: pointer; }
+.permission-repair button { flex: none; min-height: 24px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.09); font-size: 9px; font-weight: 600; cursor: pointer; }
 .setting-copy strong { font-size: 12px; font-weight: 600; }
 .setting-copy small { overflow: hidden; margin-top: 2px; color: var(--secondary); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .setting-toggle-row { cursor: pointer; }
@@ -40,16 +40,14 @@
 .setting-toggle-row input:checked + .toggle-control { background: #34c759; }
 .setting-toggle-row input:checked + .toggle-control span { transform: translateX(13px); }
 .setting-toggle-row input:focus-visible + .toggle-control { outline: 3px solid rgba(10,132,255,.22); }
-.settings-popover select, .shortcut-row button { height: 27px; padding: 0 8px; border: 1px solid rgba(60,60,67,.15); border-radius: 6px; color: #3a3a3c; background: rgba(255,255,255,.8); font-size: 10px; }
-.shortcut-row button { min-width: 70px; cursor: pointer; }
-.shortcut-row button.recording { color: var(--accent); border-color: rgba(10,132,255,.5); box-shadow: 0 0 0 3px rgba(10,132,255,.12); }
+.settings-popover select { height: 27px; padding: 0 8px; border: 1px solid rgba(60,60,67,.15); border-radius: 6px; color: #3a3a3c; background: rgba(255,255,255,.8); font-size: 10px; }
 .clear-history { width: 100%; height: 34px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,59,48,.18); border-radius: 7px; color: #ff3b30; background: rgba(255,255,255,.5); font-size: 11px; cursor: pointer; }
 .update-setting-row button { height: 27px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid rgba(60,60,67,.15); border-radius: 6px; color: var(--accent); background: rgba(255,255,255,.8); font-size: 10px; cursor: pointer; }
 .update-setting-row button:disabled { color: var(--tertiary); cursor: default; }
 .update-setting-row button.is-current { color: #248a3d; border-color: rgba(52,199,89,.24); background: rgba(52,199,89,.08); }
 
 .help-backdrop, .error-backdrop, .update-backdrop, .confirm-backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(18,18,22,.18); backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); animation: backdrop-enter .16s ease both; }
-.help-dialog, .error-dialog { position: relative; border: 1px solid rgba(255,255,255,.7); border-radius: 14px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); animation: dialog-enter .24s var(--ease-mac) both; }
+.error-dialog { position: relative; border: 1px solid rgba(255,255,255,.7); border-radius: 14px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); animation: dialog-enter .24s var(--ease-mac) both; }
 .tips-dialog { position: relative; width: min(620px,100%); height: min(500px,calc(100% - 24px)); display: grid; grid-template-rows: 48px minmax(0,1fr) 54px; overflow: hidden; border: 1px solid rgba(255,255,255,.7); border-radius: 14px; background: rgba(249,249,251,.98); box-shadow: 0 24px 72px rgba(0,0,0,.26), 0 2px 8px rgba(0,0,0,.1); animation: dialog-enter .22s var(--ease-mac) both; }
 .tips-topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 50px 0 18px; border-bottom: 1px solid var(--separator); background: rgba(242,242,245,.68); }
 .tips-topbar strong { font-size: 12.5px; }
@@ -135,36 +133,11 @@
 .shortcut-fixed { display: flex; gap: 4px; }
 .shortcut-fixed kbd { min-width: 34px; padding: 4px 7px; border: 1px solid var(--separator); border-radius: 6px; color: var(--secondary); background: white; font-size: 9.5px; text-align: center; }
 .shortcut-hint { margin: 10px 2px 0; color: var(--tertiary); font-size: 8.5px; }
-.help-dialog { width: min(600px, 100%); max-height: calc(100% - 24px); overflow-y: auto; padding: 28px; scrollbar-width: none; }
-.help-dialog::-webkit-scrollbar { display: none; }
-.help-close, .error-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 7px; color: var(--secondary); background: transparent; cursor: pointer; }
-.help-close:hover, .error-close:hover { background: rgba(118,118,128,.1); }
-.help-hero { display: grid; grid-template-columns: 46px 1fr; gap: 13px; align-items: center; padding-right: 28px; }
-.help-mark { width: 44px; height: 44px; border-radius: 11px; object-fit: cover; box-shadow: 0 3px 8px rgba(0,0,0,.14); }
-.help-eyebrow, .error-eyebrow { margin: 0 0 4px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-.help-dialog h2, .error-dialog h2 { margin: 0; font-size: 22px; line-height: 1.18; letter-spacing: -.025em; }
-.help-intro { margin: 5px 0 0; color: var(--secondary); font-size: 12px; }
-.help-steps { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1px; margin-top: 20px; overflow: hidden; border: 1px solid var(--separator); border-radius: 10px; background: var(--separator); }
-.help-step { min-height: 116px; padding: 13px; background: rgba(255,255,255,.72); transition: background .14s ease; }
-.help-step:hover { background: white; }
-.help-step-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.help-step-top > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 7px; color: var(--accent); background: rgba(10,132,255,.1); }
-.help-step kbd { padding: 3px 6px; border: 1px solid var(--separator); border-radius: 5px; color: var(--secondary); background: rgba(255,255,255,.78); font-size: 9px; }
-.help-step strong { display: block; margin-bottom: 4px; font-size: 12px; }
-.help-step p { margin: 0; color: var(--secondary); font-size: 10.5px; line-height: 1.4; }
-.help-footer { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 12px; }
-.help-permission { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: center; margin-top: 12px; padding: 10px 11px; border: 1px solid rgba(255,149,0,.2); border-radius: 8px; color: #8a4200; background: rgba(255,149,0,.08); }
-.help-permission span { display: flex; flex-direction: column; }
-.help-permission strong { font-size: 11px; }
-.help-permission small { margin-top: 2px; color: rgba(112,63,13,.76); font-size: 9.5px; }
-.help-permission button { height: 27px; padding: 0 9px; border: 1px solid rgba(178,80,0,.22); border-radius: 6px; color: #8a4200; background: rgba(255,255,255,.65); font-size: 10px; cursor: pointer; }
+.help-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 7px; color: var(--secondary); background: transparent; cursor: pointer; }
+.help-close:hover { background: rgba(118,118,128,.1); }
+.error-dialog h2 { margin: 0; font-size: 22px; line-height: 1.18; letter-spacing: -.025em; }
 .undo-toast { position: absolute; z-index: 45; left: 50%; bottom: 72px; min-width: 230px; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 7px 8px 7px 14px; border: 1px solid rgba(255,255,255,.2); border-radius: 10px; color: white; background: rgba(38,38,40,.92); box-shadow: 0 10px 30px rgba(0,0,0,.25); backdrop-filter: blur(18px); transform: translateX(-50%); animation: toast-enter .2s var(--ease-mac) both; font-size: 12px; }
 .undo-toast button { height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border: 0; border-radius: 6px; color: #69adff; background: rgba(255,255,255,.09); font-size: 11px; font-weight: 650; cursor: pointer; }
-.privacy-note { display: flex; align-items: center; gap: 9px; margin: 0; padding: 9px 11px; border-radius: 8px; color: #26714b; background: rgba(52,199,89,.1); font-size: 10.5px; }
-.privacy-note span { display: flex; flex-direction: column; }
-.privacy-note small { margin-top: 2px; color: rgba(38,113,75,.75); font-size: 9px; }
-.help-done { min-width: 86px; border: 0; border-radius: 7px; color: white; background: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; }
-.help-done:active { transform: scale(.97); }
 .error-dialog { width: min(400px,100%); display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 20px; }
 .error-icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 7px; color: #ff3b30; background: rgba(255,59,48,.09); }
 .error-detail { margin: 6px 0 0; color: var(--secondary); font-size: 11px; line-height: 1.45; }
@@ -194,42 +167,3 @@
 .confirm-actions button:disabled { opacity: .65; cursor: default; }
 .confirm-cancel { min-width: 72px; border: 1px solid var(--separator); color: var(--primary); background: rgba(255,255,255,.72); }
 .confirm-delete { min-width: 104px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid #ff3b30; color: white; background: #ff3b30; }
-
-.native-capture-backdrop { position: fixed; z-index: 1300; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(20,20,24,.28); backdrop-filter: blur(16px) saturate(.88); -webkit-backdrop-filter: blur(16px) saturate(.88); animation: backdrop-enter .16s ease both; }
-.native-capture-dialog { position: relative; width: min(470px,100%); padding: 25px; border: 1px solid rgba(255,255,255,.74); border-radius: 15px; background: rgba(249,249,251,.97); box-shadow: 0 30px 90px rgba(0,0,0,.3), 0 2px 9px rgba(0,0,0,.12); animation: dialog-enter .22s var(--ease-mac) both; }
-.native-capture-close { position: absolute; top: 11px; right: 11px; width: 29px; height: 29px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; color: var(--secondary); background: transparent; cursor: pointer; }
-.native-capture-close:hover { background: rgba(118,118,128,.1); }
-.native-capture-dialog > header { display: flex; align-items: center; gap: 13px; padding-right: 30px; }
-.native-capture-dialog > header > span { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 11px; color: var(--accent); background: rgba(10,132,255,.1); }
-.native-capture-dialog header p { margin: 0 0 3px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .1em; }
-.native-capture-dialog h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; }
-.native-capture-dialog header small { display: block; margin-top: 4px; color: var(--secondary); font-size: 11px; line-height: 1.4; }
-.native-target-card { min-height: 74px; display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 11px; margin-top: 19px; padding: 11px 13px; border: 1px solid rgba(60,60,67,.12); border-radius: 10px; background: rgba(255,255,255,.68); }
-.native-target-card > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; color: #55555a; background: rgba(118,118,128,.1); }
-.native-target-card div { min-width: 0; }
-.native-target-card small, .native-target-card strong, .native-target-card p { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.native-target-card small { color: var(--tertiary); font-size: 9px; }
-.native-target-card strong { margin-top: 2px; font-size: 13px; }
-.native-target-card p { margin: 2px 0 0; color: var(--secondary); font-size: 10px; }
-.native-ready-check { color: #28a769; }
-.native-capture-permissions { margin-top: 13px; border: 1px solid rgba(60,60,67,.11); border-radius: 10px; background: rgba(246,246,248,.7); }
-.native-capture-permissions > div { min-height: 43px; display: grid; grid-template-columns: 24px minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid rgba(60,60,67,.09); }
-.native-capture-permissions > div:last-child { border-bottom: 0; }
-.native-capture-permissions span { color: var(--secondary); }
-.native-capture-permissions strong { font-size: 11px; font-weight: 600; }
-.native-capture-permissions small { font-size: 10px; }
-.native-capture-permissions small.ready { color: #248a55; }
-.native-capture-permissions small.needed { color: #d47700; }
-.native-permission-repair { display: flex; align-items: center; gap: 10px; margin: 8px 2px 2px; color: var(--secondary); font-size: 10px; line-height: 1.4; }
-.native-permission-repair span { flex: 1; }
-.native-capture-permissions button { height: 25px; padding: 0 8px; border: 1px solid rgba(10,132,255,.22); border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.08); font-size: 10px; cursor: pointer; }
-.native-capture-length { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; padding: 9px 12px; border: 1px solid rgba(60,60,67,.11); border-radius: 10px; background: rgba(255,255,255,.66); }
-.native-capture-length strong, .native-capture-length small { display: block; }
-.native-capture-length strong { font-size: 11px; }
-.native-capture-length small { margin-top: 3px; color: var(--secondary); font-size: 9px; }
-.native-capture-length select { height: 28px; padding: 0 25px 0 8px; border: 1px solid var(--separator); border-radius: 6px; background: rgba(255,255,255,.82); font-size: 10px; }
-.native-capture-note { margin: 13px 3px 0; color: var(--secondary); font-size: 10px; line-height: 1.45; }
-.native-capture-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 19px; }
-.native-capture-dialog > footer button { min-width: 82px; height: 34px; padding: 0 13px; border: 1px solid var(--separator); border-radius: 7px; background: rgba(255,255,255,.72); font-size: 12px; font-weight: 600; cursor: pointer; }
-.native-capture-dialog > footer .native-capture-start { min-width: 128px; color: white; border-color: var(--accent); background: var(--accent); }
-.native-capture-dialog > footer button:disabled { opacity: .5; cursor: default; }

@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Mote Desktop" type="js.build_tools.npm" factoryName="npm">
+  <configuration default="false" name="Mote Desktop" type="js.build_tools.npm">
     <package-json value="$PROJECT_DIR$/package.json" />
     <command value="run" />
     <scripts>
-      <script value="desktop:run" />
+      <script value="desktop:dev" />
     </scripts>
     <node-interpreter value="project" />
     <envs />
