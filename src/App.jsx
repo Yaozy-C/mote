@@ -275,6 +275,17 @@ export function App() {
     window.setTimeout(refreshPermissions, 500);
   };
 
+  const repairPermissions = async () => {
+    try {
+      setActionError("");
+      await moteApi.repairPermissionAccess();
+      window.setTimeout(refreshPermissions, 800);
+    } catch (cause) {
+      setActionError(String(cause));
+      throw cause;
+    }
+  };
+
   const offerUndo = (ids) => {
     window.clearTimeout(undoTimer.current);
     setUndoState({ ids, count: ids.length });
@@ -332,7 +343,7 @@ export function App() {
           <PreviewPanel history={history} actionDone={actionDone} t={t} locale={locale} onError={setActionError} onPaste={handlePaste} onCopy={handleCopy} onPlainText={handlePlainText} onPin={() => runAction(history.togglePin)} onDelete={handleDelete} />
         </div>
 
-        {settingsOpen && <SettingsPopover popoverRef={settingsPopoverRef} settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={requestAccessibility} onRequestScreenCapture={async () => { await moteApi.requestScreenCaptureAccess(); await refreshPermissions(); }} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
+        {settingsOpen && <SettingsPopover popoverRef={settingsPopoverRef} settings={history.settings} updater={updater} permissionStatus={permissionStatus} onRefreshPermissions={refreshPermissions} onOpenAccessibility={requestAccessibility} onRequestScreenCapture={async () => { await moteApi.requestScreenCaptureAccess(); await refreshPermissions(); }} onRepairPermissions={repairPermissions} t={t} onChange={(settings) => runAction(() => history.saveSettings(settings))} onClear={() => {
           setSettingsOpen(false);
           setClearConfirmOpen(true);
         }} />}
@@ -344,7 +355,7 @@ export function App() {
         {undoState && <UndoToast count={undoState.count} onUndo={handleUndo} t={t} />}
       </section>
       {screenshotOpen && (isDesktopRuntime()
-        ? <NativeLongScreenshotDialog permissionStatus={permissionStatus} t={t} onClose={() => setScreenshotOpen(false)} onCapture={handleNativeScreenshot} onOpenAccessibility={requestAccessibility} onRefreshPermissions={refreshPermissions} />
+        ? <NativeLongScreenshotDialog permissionStatus={permissionStatus} t={t} onClose={() => setScreenshotOpen(false)} onCapture={handleNativeScreenshot} onOpenAccessibility={requestAccessibility} onRefreshPermissions={refreshPermissions} onRepairPermissions={repairPermissions} />
         : <LongScreenshotOverlay reduceMotion={history.settings.reduceMotion} t={t} onClose={() => setScreenshotOpen(false)} onComplete={(capture) => runAction(() => handleScreenshotComplete(capture))} />)}
     </main>
   );

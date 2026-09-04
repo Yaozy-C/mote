@@ -41,7 +41,7 @@ function UpdateRow({ updater, t }) {
   );
 }
 
-export function SettingsPopover({ popoverRef, settings, onChange, onClear, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, onRequestScreenCapture, t }) {
+export function SettingsPopover({ popoverRef, settings, onChange, onClear, updater, permissionStatus, onRefreshPermissions, onOpenAccessibility, onRequestScreenCapture, onRepairPermissions, t }) {
   const [section, setSection] = useState("general");
   const [permissionCheck, setPermissionCheck] = useState("idle");
   useEffect(() => {
@@ -52,6 +52,16 @@ export function SettingsPopover({ popoverRef, settings, onChange, onClear, updat
     setPermissionCheck("checking");
     const status = await onRefreshPermissions();
     setPermissionCheck(status?.accessibility && status?.screenCapture ? "ready" : "needed");
+  };
+  const repairPermissions = async () => {
+    setPermissionCheck("checking");
+    try {
+      await onRepairPermissions();
+    } catch {
+      // The parent shows the native repair error.
+    } finally {
+      setPermissionCheck("needed");
+    }
   };
   const permissionCheckLabel = permissionCheck === "checking"
     ? t("permission.checking")
@@ -86,7 +96,7 @@ export function SettingsPopover({ popoverRef, settings, onChange, onClear, updat
         {!permissionStatus.clipboardCapture && <PermissionIssue title={t("permission.capture")} detail={t("permission.captureOff")} />}
         {!permissionStatus.accessibility && <PermissionIssue title={t("permission.autoPaste")} detail={t("permission.accessibilityNeeded")} action={<button onClick={onOpenAccessibility}>{t("permission.fix")}</button>} />}
         {!permissionStatus.screenCapture && <PermissionIssue title={t("permission.screenCapture")} detail={t("permission.screenCaptureNeeded")} action={<button onClick={onRequestScreenCapture}>{t("permission.allow")}</button>} />}
-        {permissionCheck === "needed" && <small className="permission-check-note">{t("permission.restartHint")}</small>}
+        {permissionCheck === "needed" && <div className="permission-repair"><small>{t("permission.staleGrantHint")}</small><button onClick={repairPermissions}>{t("permission.repair")}</button></div>}
       </section>
 
       <section className="settings-section">

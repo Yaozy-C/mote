@@ -9,12 +9,13 @@ import {
 } from "@tabler/icons-react";
 import { moteApi } from "../services/moteApi.js";
 
-export function NativeLongScreenshotDialog({ permissionStatus, onClose, onCapture, onOpenAccessibility, onRefreshPermissions, t }) {
+export function NativeLongScreenshotDialog({ permissionStatus, onClose, onCapture, onOpenAccessibility, onRefreshPermissions, onRepairPermissions, t }) {
   const [target, setTarget] = useState(null);
   const [targetError, setTargetError] = useState("");
   const [capturing, setCapturing] = useState(false);
   const [maxSteps, setMaxSteps] = useState(36);
-  const [screenRequested, setScreenRequested] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
+  const [repairing, setRepairing] = useState(false);
 
   useEffect(() => {
     moteApi.getLongScreenshotTarget().then(setTarget).catch((error) => setTargetError(String(error).replace(/^clipboard error:\s*/i, "")));
@@ -34,8 +35,24 @@ export function NativeLongScreenshotDialog({ permissionStatus, onClose, onCaptur
 
   const requestScreen = async () => {
     await moteApi.requestScreenCaptureAccess();
-    setScreenRequested(true);
+    setPermissionRequested(true);
     await onRefreshPermissions();
+  };
+
+  const requestAccessibility = async () => {
+    await onOpenAccessibility();
+    setPermissionRequested(true);
+  };
+
+  const repairPermissions = async () => {
+    setRepairing(true);
+    try {
+      await onRepairPermissions();
+    } catch {
+      // The parent shows the native repair error.
+    } finally {
+      setRepairing(false);
+    }
   };
 
   const ready = permissionStatus.accessibility && permissionStatus.screenCapture && target && !targetError;
@@ -54,10 +71,10 @@ export function NativeLongScreenshotDialog({ permissionStatus, onClose, onCaptur
       </div>
 
       <div className="native-capture-permissions">
-        <PermissionLine icon={<IconMouse size={18} stroke={1.7} />} title={t("permission.accessibilityCapture")} ready={permissionStatus.accessibility} action={!permissionStatus.accessibility && <button onClick={onOpenAccessibility}>{t("permission.fix")}</button>} t={t} />
+        <PermissionLine icon={<IconMouse size={18} stroke={1.7} />} title={t("permission.accessibilityCapture")} ready={permissionStatus.accessibility} action={!permissionStatus.accessibility && <button onClick={requestAccessibility}>{t("permission.fix")}</button>} t={t} />
         <PermissionLine icon={<IconLockAccess size={18} stroke={1.7} />} title={t("permission.screenCapture")} ready={permissionStatus.screenCapture} action={!permissionStatus.screenCapture && <button onClick={requestScreen}>{t("permission.allow")}</button>} t={t} />
       </div>
-      {screenRequested && !permissionStatus.screenCapture && <p className="native-permission-restart">{t("permission.restartHint")}</p>}
+      {permissionRequested && (!permissionStatus.accessibility || !permissionStatus.screenCapture) && <div className="native-permission-repair"><span>{t("permission.staleGrantHint")}</span><button disabled={repairing} onClick={repairPermissions}>{repairing ? t("permission.checking") : t("permission.repair")}</button></div>}
 
       <label className="native-capture-length"><span><strong>{t("screenshot.maxLength")}</strong><small>{t("screenshot.maxLengthDetail")}</small></span><select value={maxSteps} onChange={(event) => setMaxSteps(Number(event.target.value))}><option value="18">{t("screenshot.lengthShort")}</option><option value="36">{t("screenshot.lengthStandard")}</option><option value="64">{t("screenshot.lengthLong")}</option></select></label>
       <p className="native-capture-note">{t("screenshot.nativeHint")}</p>

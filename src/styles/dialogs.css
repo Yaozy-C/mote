@@ -28,7 +28,9 @@
 .permission-issue strong { color: var(--primary); font-size: 10px; }
 .permission-issue small { overflow: hidden; margin-top: 2px; color: var(--secondary); font-size: 8.5px; text-overflow: ellipsis; white-space: nowrap; }
 .permission-issue button { height: 24px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.08); font-size: 9px; font-weight: 600; cursor: pointer; }
-.permission-check-note { display: block; margin: 0; padding: 7px 10px; border-top: 1px solid rgba(60,60,67,.09); color: #8a4200; font-size: 8.5px; line-height: 1.35; }
+.permission-repair { display: flex; align-items: center; gap: 8px; padding: 7px 9px 7px 10px; border-top: 1px solid rgba(60,60,67,.09); color: #8a4200; }
+.permission-repair small { flex: 1; font-size: 8.5px; line-height: 1.35; }
+.permission-repair button, .native-permission-repair button { flex: none; min-height: 24px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.09); font-size: 9px; font-weight: 600; cursor: pointer; }
 .setting-copy strong { font-size: 12px; font-weight: 600; }
 .setting-copy small { overflow: hidden; margin-top: 2px; color: var(--secondary); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .setting-toggle-row { cursor: pointer; }
@@ -218,7 +220,8 @@
 .native-capture-permissions small { font-size: 10px; }
 .native-capture-permissions small.ready { color: #248a55; }
 .native-capture-permissions small.needed { color: #d47700; }
-.native-permission-restart { margin: -4px 2px 2px; color: var(--secondary-text); font-size: 11px; line-height: 1.45; }
+.native-permission-repair { display: flex; align-items: center; gap: 10px; margin: 8px 2px 2px; color: var(--secondary); font-size: 10px; line-height: 1.4; }
+.native-permission-repair span { flex: 1; }
 .native-capture-permissions button { height: 25px; padding: 0 8px; border: 1px solid rgba(10,132,255,.22); border-radius: 6px; color: var(--accent); background: rgba(10,132,255,.08); font-size: 10px; cursor: pointer; }
 .native-capture-length { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; padding: 9px 12px; border: 1px solid rgba(60,60,67,.11); border-radius: 10px; background: rgba(255,255,255,.66); }
 .native-capture-length strong, .native-capture-length small { display: block; }

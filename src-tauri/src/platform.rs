@@ -23,6 +23,29 @@ pub fn accessibility_trusted() -> bool {
     false
 }
 
+pub fn reset_privacy_permissions(bundle_id: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        for service in ["Accessibility", "ScreenCapture"] {
+            let output = Command::new("/usr/bin/tccutil")
+                .args(["reset", service, bundle_id])
+                .output()
+                .map_err(|error| error.to_string())?;
+            if !output.status.success() {
+                let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                return Err(if detail.is_empty() {
+                    format!("macOS could not reset the {service} permission.")
+                } else {
+                    detail
+                });
+            }
+        }
+        return Ok(());
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("Privacy permission repair is available on macOS only.".into())
+}
+
 pub fn open_external(value: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     return Command::new("open")

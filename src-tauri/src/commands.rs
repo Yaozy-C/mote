@@ -300,6 +300,15 @@ pub fn request_screen_capture_access() -> bool {
 }
 
 #[tauri::command]
+pub fn repair_permission_access(app: AppHandle) -> AppResult<()> {
+    platform::reset_privacy_permissions(&app.config().identifier)
+        .map_err(AppError::Clipboard)?;
+    let _ = long_screenshot::request_screen_capture();
+    let _ = long_screenshot::request_accessibility();
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_long_screenshot_target(state: State<'_, AppState>) -> AppResult<LongScreenshotTarget> {
     let bundle_id = state
         .last_active_app

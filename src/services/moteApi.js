@@ -140,6 +140,10 @@ export const moteApi = {
     return true;
   },
 
+  async repairPermissionAccess() {
+    if (isDesktopRuntime()) return invoke("repair_permission_access");
+  },
+
   async getLongScreenshotTarget() {
     if (isDesktopRuntime()) return invoke("get_long_screenshot_target");
     return { bundleId: "com.google.Chrome", name: "Chrome" };

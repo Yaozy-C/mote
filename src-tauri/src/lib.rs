@@ -287,6 +287,7 @@ pub fn run() {
             commands::request_accessibility_access,
             commands::get_permission_status,
             commands::request_screen_capture_access,
+            commands::repair_permission_access,
             commands::get_long_screenshot_target,
             commands::start_native_long_screenshot,
             commands::open_external,
