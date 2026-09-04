@@ -27,25 +27,17 @@ static CGRect cg_rect_from_appkit(NSRect rect) {
 }
 
 static CGImageRef capture_screen_rect(CGRect rect, NSError **result_error) {
-    if (@available(macOS 15.2, *)) {
-        __block CGImageRef result = nil;
-        __block NSError *capture_error = nil;
-        dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-        [SCScreenshotManager captureImageInRect:rect completionHandler:^(CGImageRef image, NSError *error) {
-            if (image) result = CGImageRetain(image);
-            capture_error = error;
-            dispatch_semaphore_signal(semaphore);
-        }];
-        dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 12 * NSEC_PER_SEC));
-        if (result_error) *result_error = capture_error;
-        return result;
-    }
-    return CGWindowListCreateImage(
-        rect,
-        kCGWindowListOptionOnScreenOnly,
-        kCGNullWindowID,
-        kCGWindowImageBestResolution
-    );
+    __block CGImageRef result = nil;
+    __block NSError *capture_error = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    [SCScreenshotManager captureImageInRect:rect completionHandler:^(CGImageRef image, NSError *error) {
+        if (image) result = CGImageRetain(image);
+        capture_error = error;
+        dispatch_semaphore_signal(semaphore);
+    }];
+    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 12 * NSEC_PER_SEC));
+    if (result_error) *result_error = capture_error;
+    return result;
 }
 
 static NSRect all_screens_frame(void) {

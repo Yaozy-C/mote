@@ -19,7 +19,7 @@ fn build_macos_capture_engine() {
         let status = Command::new("xcrun")
             .args(["--sdk", "macosx", "clang", "-c"])
             .arg(&source)
-            .args(["-o", object.to_str().expect("capture object path"), "-fobjc-arc", "-fblocks", "-fmodules", "-mmacosx-version-min=14.0", "-Wno-deprecated-declarations"])
+            .args(["-o", object.to_str().expect("capture object path"), "-fobjc-arc", "-fblocks", "-fmodules", "-mmacosx-version-min=15.2", "-Wno-deprecated-declarations"])
             .arg(format!("-fmodules-cache-path={}", output.join("module-cache").display()))
             .status()
             .expect("run clang for the macOS capture engine");
