@@ -81,7 +81,7 @@ export function App() {
     setHelpOpen(false);
     setShortcutOpen(false);
     if (isDesktopRuntime()) {
-      handleNativeScreenshot(36).catch(() => {});
+      handleNativeScreenshot().catch(() => {});
       return;
     }
     setScreenshotOpen(true);
@@ -94,10 +94,11 @@ export function App() {
     window.setTimeout(() => setActionDone(null), 1500);
   };
 
-  const handleNativeScreenshot = async (maxSteps) => {
+  const handleNativeScreenshot = async () => {
     try {
       setActionError("");
-      await moteApi.startNativeLongScreenshot(maxSteps);
+      const captured = await moteApi.startNativeScreenshot();
+      if (!captured) return;
       setActionDone({ type: "copied" });
       window.setTimeout(() => setActionDone(null), 1500);
     } catch (cause) {

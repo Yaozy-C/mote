@@ -141,7 +141,6 @@ pub fn run() {
                         return;
                     };
                     if shortcut == &screenshot_shortcut {
-                        show_main_window(app);
                         let _ = app.emit("mote://open-screenshot", ());
                     } else if shortcut == &color_shortcut {
                         let _ = app.emit("mote://open-color-picker", ());
@@ -289,6 +288,7 @@ pub fn run() {
             commands::request_screen_capture_access,
             commands::repair_permission_access,
             commands::get_long_screenshot_target,
+            commands::start_native_screenshot,
             commands::start_native_long_screenshot,
             commands::open_external,
             commands::reveal_file,

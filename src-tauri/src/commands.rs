@@ -331,6 +331,62 @@ pub fn get_long_screenshot_target(state: State<'_, AppState>) -> AppResult<LongS
 }
 
 #[tauri::command]
+pub async fn start_native_screenshot(app: AppHandle) -> AppResult<bool> {
+    if !long_screenshot::screen_capture_ready() && !long_screenshot::request_screen_capture() {
+        return Err(AppError::Clipboard(
+            "Screen Recording access is required to start a screenshot.".into(),
+        ));
+    }
+    let output = std::env::temp_dir().join(format!(
+        "mote-screenshot-{}.png",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+    ));
+    let window = app.get_webview_window("main");
+    let restore_window = window
+        .as_ref()
+        .and_then(|value| value.is_visible().ok())
+        .unwrap_or(false);
+    if let Some(window) = &window {
+        let _ = window.hide();
+    }
+    thread::sleep(Duration::from_millis(120));
+    let capture_output = output.clone();
+    let selection_result = tauri::async_runtime::spawn_blocking(move || {
+        long_screenshot::select_screenshot(&capture_output)
+    })
+    .await
+    .map_err(|error| AppError::Clipboard(error.to_string()))
+    .and_then(|value| value.map_err(AppError::Clipboard));
+
+    let result = match selection_result {
+        Ok(true) => Image::from_path(&output)
+            .map_err(|error| AppError::Clipboard(error.to_string()))
+            .and_then(|image| {
+                app.clipboard()
+                    .write_image(&image)
+                    .map_err(|error| AppError::Clipboard(error.to_string()))
+            })
+            .map(|_| true),
+        Ok(false) => Ok(false),
+        Err(error) => Err(error),
+    };
+    let _ = std::fs::remove_file(&output);
+    if restore_window {
+        if let Some(window) = window {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
+    if result.as_ref().is_ok_and(|captured| *captured) {
+        let _ = app.emit("mote://screenshot-complete", ());
+    }
+    result
+}
+
+#[tauri::command]
 pub async fn start_native_long_screenshot(
     app: AppHandle,
     state: State<'_, AppState>,

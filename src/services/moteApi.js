@@ -149,6 +149,11 @@ export const moteApi = {
     return { bundleId: "com.google.Chrome", name: "Chrome" };
   },
 
+  async startNativeScreenshot() {
+    if (!isDesktopRuntime()) throw new Error("Native screenshot selection is only available in the desktop app.");
+    return invoke("start_native_screenshot");
+  },
+
   async startNativeLongScreenshot(maxSteps = 36) {
     if (!isDesktopRuntime()) throw new Error("Native scrolling capture is only available in the desktop app.");
     return invoke("start_native_long_screenshot", { maxSteps });

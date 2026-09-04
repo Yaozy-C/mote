@@ -10,6 +10,11 @@ mod native {
         fn mote_screen_capture_preflight() -> bool;
         fn mote_screen_capture_request() -> bool;
         fn mote_accessibility_request() -> bool;
+        fn mote_select_screenshot(
+            output_path: *const c_char,
+            error: *mut c_char,
+            error_length: usize,
+        ) -> c_int;
         fn mote_capture_long_screenshot(
             bundle_id: *const c_char,
             output_path: *const c_char,
@@ -29,6 +34,30 @@ mod native {
 
     pub fn request_accessibility() -> bool {
         unsafe { mote_accessibility_request() }
+    }
+
+    pub fn select_screenshot(output_path: &Path) -> Result<bool, String> {
+        let output = CString::new(output_path.to_string_lossy().as_bytes())
+            .map_err(|_| "The screenshot output path is invalid.".to_string())?;
+        let mut error = vec![0_i8; 1024];
+        let status = unsafe {
+            mote_select_screenshot(output.as_ptr(), error.as_mut_ptr(), error.len())
+        };
+        if status == 0 {
+            return Ok(true);
+        }
+        if status == 1 {
+            return Ok(false);
+        }
+        let message = unsafe { std::ffi::CStr::from_ptr(error.as_ptr()) }
+            .to_string_lossy()
+            .trim()
+            .to_string();
+        Err(if message.is_empty() {
+            format!("The screenshot stopped with error {status}.")
+        } else {
+            message
+        })
     }
 
     pub fn capture(bundle_id: &str, output_path: &Path, max_steps: u32) -> Result<(), String> {
@@ -62,7 +91,7 @@ mod native {
 }
 
 #[cfg(target_os = "macos")]
-pub use native::{capture, request_accessibility, request_screen_capture, screen_capture_ready};
+pub use native::{capture, request_accessibility, request_screen_capture, screen_capture_ready, select_screenshot};
 
 #[cfg(not(target_os = "macos"))]
 pub fn screen_capture_ready() -> bool {
@@ -77,6 +106,11 @@ pub fn request_screen_capture() -> bool {
 #[cfg(not(target_os = "macos"))]
 pub fn request_accessibility() -> bool {
     false
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn select_screenshot(_output_path: &std::path::Path) -> Result<bool, String> {
+    Err("Screenshot selection is currently available on macOS.".into())
 }
 
 #[cfg(not(target_os = "macos"))]
