@@ -11,6 +11,7 @@ Settings, keyboard shortcuts, Help, and destructive confirmation at 1280 × 720.
 3. Keyboard shortcuts — healthy after refinement. Three top categories and one compact command list replace the oversized intro, sidebar, row descriptions, footer explanation, and Done button.
 4. Help — healthy after refinement. Five topic pages replace fifteen isolated slides; every major capability still has a visible example.
 5. Clear history confirmation — healthy after refinement. One title, one consequence statement, Cancel, and the destructive action replace the duplicate close affordance and decorative warning block.
+6. Titlebar actions — healthy after refinement. Every icon now exposes an immediate localized tooltip, consistent hover/press/focus treatment, and an active state for owned transient surfaces; disabled Pin still explains its unavailable state.
 
 ## Highest-impact changes
 

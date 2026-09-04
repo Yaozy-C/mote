@@ -1,4 +1,4 @@
-# Design QA — Mote Transient UI Refinement
+# Design QA — Mote Transient UI and Titlebar Interactions
 
 - Source visual truth: current captured surfaces before refinement — `.audit/02-settings.png`, `.audit/03-shortcuts.png`, `.audit/04-help.png`
 - Implementation screenshots: `.audit/09-settings-final.png`, `.audit/10-shortcuts-final.png`, `.audit/11-help-final.png`, `.audit/08-clear-confirm-refined.png`
@@ -19,6 +19,7 @@ No actionable P0, P1, or P2 issues remain.
 - Image quality and asset fidelity: no new raster assets were needed. Removing redundant Mote logos from transient surfaces avoids competing with task content; existing real content previews remain intact.
 - Copy and content: Settings removes descriptions when the label is self-explanatory and reveals detail for permission exceptions. Shortcut rows retain command names and key combinations. Help preserves every major capability and its visual example while reducing navigation from 15 pages to 5 topics.
 - Accessibility and interaction: dialogs retain semantic roles, accessible names, Escape/outside-click dismissal, labeled close controls where needed, and keyboard-operable categories. Permission refresh keeps visible state feedback. Destructive confirmation retains explicit Cancel and destructive actions.
+- Titlebar actions: all six icon buttons now share the same hover surface, press feedback, keyboard focus ring, localized tooltip, and accessible name. Configurable shortcuts appear in the two relevant tooltips; open Settings, Help, and Shortcut surfaces expose `aria-pressed` and a visible blue active state. The disabled Pin action remains hoverable through its wrapper and explains why it is unavailable in multiple-selection mode.
 
 Focused-region evidence was required because the task concerned small transient surfaces. The three combined comparison images show each original surface and its same-viewport replacement together; the final clear-history screenshot verifies the compact alert grammar.
 
@@ -36,6 +37,7 @@ Focused-region evidence was required because the task concerned small transient 
 - Open Help and advance from Getting started to Rich content.
 - Open Privacy and reach the clear-history alert without executing deletion.
 - Close modal surfaces through their intended controls.
+- Hover every titlebar action, open Settings to verify the pressed/active state, and enter multiple selection to verify the disabled Pin explanation.
 
 ## Implementation Checklist
 
