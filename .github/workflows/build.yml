@@ -6,6 +6,22 @@ on:
     branches:
       - main
       - "feat/**"
+    paths:
+      - ".github/workflows/build.yml"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "tsconfig*.json"
+      - "vite.config.*"
+
+# A release tag points at the same commit as the preceding main push. Sharing the
+# concurrency group lets the later release replace that redundant app-only build.
+concurrency:
+  group: mote-native-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -33,6 +49,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          shared-key: "mote-${{ matrix.target }}"
       - name: Install frontend dependencies
         run: npm ci
       - name: Build macOS application

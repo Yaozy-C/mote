@@ -38,8 +38,8 @@ objc2-app-kit = { version = "0.3.2", features = ["block2", "objc2-core-foundatio
 objc2-foundation = { version = "0.3.2", features = ["NSArray", "NSData", "NSString"] }
 
 [profile.release]
-codegen-units = 1
-lto = true
+codegen-units = 16
+lto = "thin"
 opt-level = "s"
 panic = "abort"
 strip = true

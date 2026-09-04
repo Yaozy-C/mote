@@ -9,6 +9,12 @@ on:
 permissions:
   contents: write
 
+# If the same commit is already being built by Build Mote, the release is the
+# authoritative run and cancels the duplicate work.
+concurrency:
+  group: mote-native-${{ github.sha }}
+  cancel-in-progress: true
+
 jobs:
   prepare-release:
     name: Prepare GitHub Release
@@ -50,6 +56,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          shared-key: "mote-${{ matrix.target }}"
       - name: Install frontend dependencies
         run: npm ci
       - name: Build and publish GitHub Release
