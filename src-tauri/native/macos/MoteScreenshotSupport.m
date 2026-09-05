@@ -118,14 +118,16 @@ NSArray<NSValue *> *MoteCandidateWindowRects(void) {
   for (NSDictionary *window in (__bridge NSArray *)info) {
     if ([window[(id)kCGWindowOwnerPID] intValue] == ownPID)
       continue;
-    if ([window[(id)kCGWindowLayer] intValue] != 0)
+    // Include floating app windows, while excluding menus, Dock and overlays.
+    NSInteger layer = [window[(id)kCGWindowLayer] integerValue];
+    if (layer < 0 || layer >= CGWindowLevelForKey(kCGMainMenuWindowLevelKey))
       continue;
     if ([window[(id)kCGWindowAlpha] doubleValue] <= 0.01)
       continue;
     CGRect bounds = CGRectZero;
     if (!CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)window[(id)kCGWindowBounds], &bounds))
       continue;
-    if (bounds.size.width < 80 || bounds.size.height < 60)
+    if (bounds.size.width < 2 || bounds.size.height < 2)
       continue;
     NSRect rect =
         NSMakeRect(bounds.origin.x, primary_top() - CGRectGetMaxY(bounds), bounds.size.width, bounds.size.height);

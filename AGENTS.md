@@ -8,6 +8,8 @@ When implementing from a selected generated mock, treat that image as the source
 
 ## Mote visual direction
 
+- Screenshot selection must keep the entire frozen desktop visible under a light translucent dimming layer. Hit-test the current pointer at click time and when entering another display; include frontmost floating application windows.
+
 - Product name: Mote.
 - Source visual: `public/assets/source-reference.png`.
 - Preserve the warm luminous frosted-glass window, restrained coral selection/action color, content-rich preview, sparse ambient particles, precise desktop typography, and calm premium feel.

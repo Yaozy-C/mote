@@ -44,7 +44,8 @@ static NSRect toolbar_rect(NSRect selection, NSRect bounds) {
   for (NSTrackingArea *area in self.trackingAreas)
     [self removeTrackingArea:area];
   NSTrackingAreaOptions options =
-      NSTrackingMouseMoved | NSTrackingActiveAlways | NSTrackingInVisibleRect | NSTrackingEnabledDuringMouseDrag;
+      NSTrackingMouseMoved | NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways |
+      NSTrackingInVisibleRect | NSTrackingEnabledDuringMouseDrag;
   [self addTrackingArea:[[NSTrackingArea alloc] initWithRect:self.bounds options:options owner:self userInfo:nil]];
 }
 - (NSRect)localRect:(NSRect)screenRect {
@@ -67,6 +68,7 @@ static NSRect toolbar_rect(NSRect selection, NSRect bounds) {
 - (void)resetSelection {
   self.selection = NSZeroRect;
   self.mode = MoteSelectionModeHover;
+  [self updateHover:[self convertPoint:self.window.mouseLocationOutsideOfEventStream fromView:nil]];
   [self setNeedsDisplay:YES];
 }
 - (void)drawSymbol:(NSString *)name inRect:(NSRect)rect {
@@ -79,8 +81,9 @@ static NSRect toolbar_rect(NSRect selection, NSRect bounds) {
 }
 - (void)drawRect:(NSRect)dirtyRect {
   [self.snapshot drawInRect:self.bounds fromRect:NSZeroRect operation:NSCompositingOperationCopy fraction:1];
-  [[NSColor colorWithWhite:0 alpha:.40] setFill];
-  NSRectFill(self.bounds);
+  [[NSColor colorWithWhite:0 alpha:.25] setFill];
+  // Source-over preserves the frozen desktop; NSRectFill replaces its pixels.
+  NSRectFillUsingOperation(self.bounds, NSCompositingOperationSourceOver);
   NSRect focus = NSIsEmptyRect(self.selection) ? self.hoveredRect : self.selection;
   if (!NSIsEmptyRect(focus)) {
     [NSGraphicsContext saveGraphicsState];
@@ -184,8 +187,15 @@ static NSRect toolbar_rect(NSRect selection, NSRect bounds) {
     [self updateHover:self.mousePoint];
   [self setNeedsDisplay:YES];
 }
+- (void)mouseEntered:(NSEvent *)event { [self mouseMoved:event]; }
+- (void)mouseExited:(NSEvent *)event {
+  self.hoveredRect = NSZeroRect;
+  [self setNeedsDisplay:YES];
+}
 - (void)mouseDown:(NSEvent *)event {
   NSPoint point = [self convertPoint:event.locationInWindow fromView:nil];
+  self.mousePoint = point;
+  [self updateHover:point];
   if (event.clickCount >= 2 && self.mode >= MoteSelectionModeEditing && NSPointInRect(point, self.selection)) {
     [self.delegate acceptView:self];
     return;
@@ -223,6 +233,7 @@ static NSRect toolbar_rect(NSRect selection, NSRect bounds) {
   [self.delegate selectView:self];
   [self.window makeKeyWindow];
   [self.window makeFirstResponder:self];
+  [self setNeedsDisplay:YES];
 }
 - (void)mouseDragged:(NSEvent *)event {
   NSPoint point = [self convertPoint:event.locationInWindow fromView:nil];
